@@ -1,0 +1,1 @@
+"""MedClaim — FastAPI Application Package."""
