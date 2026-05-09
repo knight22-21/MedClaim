@@ -1,0 +1,107 @@
+# =============================================================================
+# MedClaim — Eligibility Verification Fixtures
+# Mock payer API responses for deterministic testing
+# =============================================================================
+# Maps (payer_id, patient_dob, procedure_code) → eligibility outcome
+# Used by the EligibilityAgent mock API in development/testing
+
+defaults:
+  coverage_active: true
+  procedure_covered: true
+  provider_in_network: true
+
+fixtures:
+  # --- US Market: Medicare ---
+  - payer_id: "MCR-001"
+    patient_dob: "1985-03-15"
+    procedure_code: "99213"
+    coverage_active: true
+    procedure_covered: true
+    provider_in_network: true
+    response_message: "All eligibility checks passed."
+
+  - payer_id: "MCR-001"
+    patient_dob: "1990-07-22"
+    procedure_code: "27447"
+    coverage_active: true
+    procedure_covered: true
+    provider_in_network: true
+    response_message: "All eligibility checks passed."
+
+  - payer_id: "MCR-001"
+    patient_dob: "1978-12-01"
+    procedure_code: "99213"
+    coverage_active: false
+    procedure_covered: true
+    provider_in_network: true
+    response_message: "Coverage inactive on date of service."
+
+  # --- US Market: Blue Cross ---
+  - payer_id: "BCBS-100"
+    patient_dob: "1985-03-15"
+    procedure_code: "99213"
+    coverage_active: true
+    procedure_covered: true
+    provider_in_network: false
+    response_message: "Provider is out of network for this plan."
+
+  - payer_id: "BCBS-100"
+    patient_dob: "1992-05-10"
+    procedure_code: "69990"
+    coverage_active: true
+    procedure_covered: false
+    provider_in_network: true
+    response_message: "Procedure not covered under plan."
+
+  # --- US Market: Aetna ---
+  - payer_id: "AET-200"
+    patient_dob: "1975-08-30"
+    procedure_code: "99213"
+    coverage_active: true
+    procedure_covered: true
+    provider_in_network: true
+    response_message: "All eligibility checks passed."
+
+  # --- US Market: UnitedHealth ---
+  - payer_id: "UHC-300"
+    patient_dob: "1988-01-14"
+    procedure_code: "43239"
+    coverage_active: true
+    procedure_covered: true
+    provider_in_network: true
+    response_message: "All eligibility checks passed."
+
+  # --- India Market: Star Health ---
+  - payer_id: "STAR-IN-001"
+    patient_dob: "1990-06-15"
+    procedure_code: "99213"
+    coverage_active: true
+    procedure_covered: true
+    provider_in_network: true
+    response_message: "All eligibility checks passed."
+
+  # --- India Market: HDFC Ergo ---
+  - payer_id: "HDFC-IN-001"
+    patient_dob: "1982-11-20"
+    procedure_code: "27447"
+    coverage_active: true
+    procedure_covered: false
+    provider_in_network: true
+    response_message: "Procedure not covered under HDFC Ergo policy."
+
+  # --- India Market: Ayushman Bharat (PM-JAY) ---
+  - payer_id: "PMJAY-001"
+    patient_dob: "1995-02-28"
+    procedure_code: "HBP-1201"
+    coverage_active: true
+    procedure_covered: true
+    provider_in_network: true
+    response_message: "All eligibility checks passed under PM-JAY."
+
+  - payer_id: "PMJAY-001"
+    patient_dob: "2000-09-05"
+    procedure_code: "HBP-9999"
+    coverage_active: true
+    procedure_covered: false
+    provider_in_network: true
+    response_message: "Procedure not in Health Benefit Package list."

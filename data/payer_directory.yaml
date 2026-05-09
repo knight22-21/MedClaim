@@ -1,0 +1,150 @@
+# =============================================================================
+# MedClaim — Payer Directory
+# Reference data for all supported US and India market payers
+# =============================================================================
+# Used by the AppealDraftingAgent for correct payer addressing
+# and by the market module for payer validation
+
+us_payers:
+  - id: "MCR-001"
+    name: "Medicare (CMS)"
+    type: "government"
+    appeal_address: "Medicare Administrative Contractor, Claims Appeal Division"
+    appeal_deadline_days: 120
+    denial_codes_supported:
+      - "CO-4"
+      - "CO-16"
+      - "CO-97"
+      - "OA-23"
+      - "PR-204"
+      - "CO-50"
+
+  - id: "MCD-001"
+    name: "Medicaid"
+    type: "government"
+    appeal_address: "State Medicaid Agency, Claims Review Department"
+    appeal_deadline_days: 90
+    denial_codes_supported:
+      - "CO-4"
+      - "CO-16"
+      - "CO-97"
+
+  - id: "BCBS-100"
+    name: "Blue Cross Blue Shield"
+    type: "commercial"
+    appeal_address: "BCBS Claims Appeal Department, P.O. Box 105568"
+    appeal_deadline_days: 180
+    denial_codes_supported:
+      - "CO-4"
+      - "CO-16"
+      - "CO-97"
+      - "OA-23"
+      - "PR-204"
+
+  - id: "AET-200"
+    name: "Aetna"
+    type: "commercial"
+    appeal_address: "Aetna, Clinical Policy Appeals, P.O. Box 14079"
+    appeal_deadline_days: 180
+    denial_codes_supported:
+      - "CO-4"
+      - "CO-16"
+      - "CO-97"
+      - "OA-23"
+
+  - id: "UHC-300"
+    name: "UnitedHealthcare"
+    type: "commercial"
+    appeal_address: "UnitedHealthcare Appeals, P.O. Box 30432"
+    appeal_deadline_days: 180
+    denial_codes_supported:
+      - "CO-4"
+      - "CO-16"
+      - "CO-97"
+      - "OA-23"
+      - "PR-204"
+
+  - id: "CIG-400"
+    name: "Cigna Healthcare"
+    type: "commercial"
+    appeal_address: "Cigna Healthcare, National Appeals Unit, P.O. Box 188011"
+    appeal_deadline_days: 180
+    denial_codes_supported:
+      - "CO-4"
+      - "CO-16"
+      - "CO-97"
+
+india_payers:
+  - id: "STAR-IN-001"
+    name: "Star Health and Allied Insurance Company Limited"
+    type: "commercial"
+    tpa: null
+    appeal_address: "Grievance Redressal Officer, Star Health Insurance"
+    appeal_deadline_days: 30
+    cashless_settlement_hours: 1
+    regulatory_body: "IRDAI"
+
+  - id: "HDFC-IN-001"
+    name: "HDFC ERGO General Insurance Company"
+    type: "commercial"
+    tpa: "Medi Assist TPA"
+    appeal_address: "Grievance Redressal Officer, HDFC ERGO General Insurance"
+    appeal_deadline_days: 30
+    cashless_settlement_hours: 1
+    regulatory_body: "IRDAI"
+
+  - id: "ICICI-IN-001"
+    name: "ICICI Lombard General Insurance Company"
+    type: "commercial"
+    tpa: "Paramount Health Services TPA"
+    appeal_address: "Grievance Redressal Officer, ICICI Lombard"
+    appeal_deadline_days: 30
+    cashless_settlement_hours: 1
+    regulatory_body: "IRDAI"
+
+  - id: "NIA-IN-001"
+    name: "New India Assurance Company Limited"
+    type: "government"
+    tpa: "Heritage Health TPA"
+    appeal_address: "Grievance Redressal Officer, New India Assurance"
+    appeal_deadline_days: 30
+    cashless_settlement_hours: 1
+    regulatory_body: "IRDAI"
+
+  - id: "NIC-IN-001"
+    name: "National Insurance Company Limited"
+    type: "government"
+    tpa: null
+    appeal_address: "Grievance Redressal Officer, National Insurance Company"
+    appeal_deadline_days: 30
+    cashless_settlement_hours: 1
+    regulatory_body: "IRDAI"
+
+  - id: "OIC-IN-001"
+    name: "Oriental Insurance Company Limited"
+    type: "government"
+    tpa: null
+    appeal_address: "Grievance Redressal Officer, Oriental Insurance"
+    appeal_deadline_days: 30
+    cashless_settlement_hours: 1
+    regulatory_body: "IRDAI"
+
+  - id: "UII-IN-001"
+    name: "United India Insurance Company Limited"
+    type: "government"
+    tpa: null
+    appeal_address: "Grievance Redressal Officer, United India Insurance"
+    appeal_deadline_days: 30
+    cashless_settlement_hours: 1
+    regulatory_body: "IRDAI"
+
+  - id: "PMJAY-001"
+    name: "National Health Authority — Ayushman Bharat PM-JAY"
+    type: "government_scheme"
+    tpa: null
+    appeal_address: "State Health Agency, Ayushman Bharat PM-JAY Grievance Cell"
+    appeal_deadline_days: 90
+    cashless_settlement_hours: 1
+    regulatory_body: "NHA"
+    hbp_procedure_count: 1949
+    specialties_covered: 27
