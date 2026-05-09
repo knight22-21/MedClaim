@@ -1,0 +1,23 @@
+# =============================================================================
+# Prometheus Scrape Configuration — MedClaim
+# Scrapes the FastAPI /metrics endpoint running on the host machine
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # FastAPI application metrics (runs natively on host, not in Docker)
+  - job_name: "medclaim-api"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:8000"]
+        labels:
+          service: "medclaim-backend"
+          environment: "development"
+
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

@@ -1,0 +1,76 @@
+version: "3.9"
+
+# =============================================================================
+# MedClaim — Local Development Services
+# Usage: docker compose -f infra/docker-compose.yml up -d
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # HAPI FHIR R4 Server — Simulates hospital EHR system
+  # Docs: https://hapifhir.io/hapi-fhir/docs/server_jpa/
+  # ---------------------------------------------------------------------------
+  hapi-fhir:
+    image: hapiproject/hapi:latest
+    container_name: medclaim-hapi-fhir
+    ports:
+      - "8080:8080"
+    environment:
+      - hapi.fhir.server_address=http://localhost:8080/fhir
+      - hapi.fhir.fhir_version=R4
+    networks:
+      - medclaim-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/fhir/metadata"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ---------------------------------------------------------------------------
+  # Prometheus — Metrics collection and alerting
+  # Scrapes FastAPI /metrics endpoint on the host machine
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: medclaim-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - medclaim-net
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ---------------------------------------------------------------------------
+  # Grafana — Metrics visualization dashboard
+  # Auto-provisions Prometheus datasource and MedClaim dashboard
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: medclaim-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=medclaim
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - medclaim-net
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+networks:
+  medclaim-net:
+    driver: bridge
+
+volumes:
+  grafana-data:
