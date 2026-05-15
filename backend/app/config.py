@@ -56,6 +56,17 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     MARKET: str = "US"  # US or INDIA
     LOG_LEVEL: str = "DEBUG"
+    
+    PROJECT_NAME: str = "MedClaim"
+    VERSION: str = "1.0.0"
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "https://admin.medclaim.ai",
+        "https://agent.medclaim.ai",
+    ]
+    CORS_HEADERS: list[str] = ["Content-Type", "Authorization", "Accept"]
+    CORS_METHODS: list[str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    ENABLE_METRICS: bool = True
 
 
 # Singleton settings instance
