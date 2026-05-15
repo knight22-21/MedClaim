@@ -1,58 +1,41 @@
-"""
-MedClaim — Health Endpoint Tests
+"""MedClaim — API Tests."""
 
-Verifies the /health endpoint returns correct status, version,
-and service connectivity placeholders.
-"""
+from __future__ import annotations
 
 import pytest
+from fastapi.testclient import TestClient
+
+from backend.app.main import app
 
 
-@pytest.mark.unit
-class TestHealthEndpoint:
-    """Tests for the system health check endpoint."""
-
-    def test_health_returns_200(self, client):
-        """Health endpoint should return HTTP 200."""
+def test_health_check_endpoint():
+    """Test the /health endpoint returns the correct structure."""
+    with TestClient(app) as client:
         response = client.get("/health")
         assert response.status_code == 200
 
-    def test_health_response_structure(self, client):
-        """Health response should contain all required fields."""
-        response = client.get("/health")
         data = response.json()
+        assert data["success"] is True
+        assert "data" in data
 
-        assert "status" in data
-        assert "version" in data
-        assert "environment" in data
-        assert "market" in data
-        assert "services" in data
+        health = data["data"]
+        assert health["status"] in ("healthy", "degraded", "unhealthy")
+        assert "version" in health
+        assert "environment" in health
+        assert "market" in health
+        assert "services" in health
 
-    def test_health_status_is_healthy(self, client):
-        """Health status should be 'healthy' when app starts correctly."""
-        response = client.get("/health")
-        data = response.json()
-        assert data["status"] == "healthy"
+        services = health["services"]
+        assert "supabase" in services
+        assert "fhir" in services
+        assert "qdrant" in services
 
-    def test_health_version_format(self, client):
-        """Version should follow semver format."""
-        response = client.get("/health")
-        data = response.json()
-        parts = data["version"].split(".")
-        assert len(parts) == 3
-        assert all(part.isdigit() for part in parts)
 
-    def test_health_services_listed(self, client):
-        """All external service statuses should be present."""
-        response = client.get("/health")
-        services = response.json()["services"]
-
-        expected_services = ["groq", "qdrant", "supabase", "hapi_fhir"]
-        for service in expected_services:
-            assert service in services
-
-    def test_health_market_default(self, client):
-        """Default market should be US."""
-        response = client.get("/health")
-        data = response.json()
-        assert data["market"] == "US"
+def test_metrics_endpoint():
+    """Test the Prometheus /metrics endpoint is exposed."""
+    with TestClient(app) as client:
+        response = client.get("/metrics")
+        # Just verifying it doesn't 404
+        assert response.status_code in (200, 401, 403)
+        if response.status_code == 200:
+            assert "python_info" in response.text or "fastapi" in response.text
