@@ -118,7 +118,7 @@ backend/prompts/*.j2.bak
 !docs/*.pdf
 
 # Whisper model files (large binary)
-models/
+#models/
 
 # Node.js (frontend)
 frontend/node_modules/
