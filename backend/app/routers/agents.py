@@ -32,7 +32,7 @@ async def trigger_audit(claim_id: str) -> APIResponse:
         raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found")
 
     # TODO: Phase 2 — invoke CodeAuditAgent via LangGraph
-    logger.info("agent.audit.triggered", claim_id=claim_id)
+    logger.info("agent.audit.triggered | claim_id=%s", claim_id)
     return APIResponse(
         success=True,
         message=f"Code audit triggered for claim {claim_id} (agent not yet implemented)",
@@ -47,7 +47,7 @@ async def trigger_prediction(claim_id: str) -> APIResponse:
         raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found")
 
     # TODO: Phase 2 — invoke DenialPredictionAgent via LangGraph
-    logger.info("agent.prediction.triggered", claim_id=claim_id)
+    logger.info("agent.prediction.triggered | claim_id=%s", claim_id)
     return APIResponse(
         success=True,
         message=f"Denial prediction triggered for claim {claim_id} (agent not yet implemented)",
@@ -62,7 +62,7 @@ async def trigger_appeal(claim_id: str) -> APIResponse:
         raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found")
 
     # TODO: Phase 2 — invoke AppealDraftingAgent via LangGraph
-    logger.info("agent.appeal.triggered", claim_id=claim_id)
+    logger.info("agent.appeal.triggered | claim_id=%s", claim_id)
     return APIResponse(
         success=True,
         message=f"Appeal drafting triggered for claim {claim_id} (agent not yet implemented)",
@@ -76,9 +76,28 @@ async def trigger_full_pipeline(claim_id: str) -> APIResponse:
     if not claim:
         raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found")
 
-    # TODO: Phase 2 — invoke full LangGraph StateGraph
-    logger.info("agent.pipeline.triggered", claim_id=claim_id)
-    return APIResponse(
-        success=True,
-        message=f"Full pipeline triggered for claim {claim_id} (agents not yet implemented)",
-    )
+    logger.info("agent.pipeline.triggered | claim_id=%s", claim_id)
+
+    try:
+        from backend.agents.graph import process_claim
+        final_state = await process_claim(claim_id)
+
+        return APIResponse(
+            success=True,
+            data={
+                "claim_id": claim_id,
+                "final_status": final_state.get("status"),
+                "human_review_flag": final_state.get("human_review_flag", False),
+                "human_review_reason": final_state.get("human_review_reason", ""),
+                "audit_confidence": final_state.get("audit_confidence"),
+                "denial_risk_score": final_state.get("denial_risk_score"),
+                "current_agent": final_state.get("current_agent"),
+            },
+            message=f"Pipeline complete → {final_state.get('status')}",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.error("agent.pipeline.failed | claim_id=%s error=%s", claim_id, str(e))
+        raise HTTPException(status_code=500, detail=f"Pipeline failed: {str(e)}")
+

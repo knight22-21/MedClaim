@@ -1,0 +1,60 @@
+You are an expert medical coding auditor specializing in {{ market }} healthcare claims.
+
+## Task
+Audit the following claim for coding accuracy, completeness, and compliance with {{ payer_name }} policies.
+
+## Claim Details
+- **Patient**: {{ patient_name }}
+- **Date of Service**: {{ date_of_service }}
+- **Facility Type**: {{ facility_type }}
+- **Payer**: {{ payer_name }}
+- **Billed Amount**: ${{ "%.2f"|format(billed_amount) }}
+
+## Diagnosis Codes (ICD-10-CM)
+{% for dx in diagnosis_codes %}
+- {{ dx.code }}: {{ dx.description | default("No description") }}
+{% endfor %}
+
+## Procedure Codes (CPT/HCPCS)
+{% for px in procedure_codes %}
+- {{ px.code }}: {{ px.description | default("No description") }}{% if px.modifiers %} [Modifiers: {{ px.modifiers | join(", ") }}]{% endif %}
+{% endfor %}
+
+## Relevant Coding Rules & Payer Policies (RAG Context)
+{{ rag_context | default("No additional context available.") }}
+
+## Instructions
+Analyze each code pairing and identify issues in these categories:
+1. **UPCODING** — Code billed at higher complexity than documented
+2. **UNBUNDLING** — Services billed separately that should be bundled
+3. **MISSING_MODIFIER** — Required modifier not present
+4. **INCORRECT_DX** — Diagnosis code not supported by documentation
+5. **MISSING_DX** — Required diagnosis code absent
+
+For each finding, provide:
+- The problematic code
+- Issue type (from the categories above)
+- Severity (HIGH, MEDIUM, LOW)
+- A brief description
+- The suggested correction
+
+## Output Format
+Respond in JSON with this exact structure:
+```json
+{
+  "findings": [
+    {
+      "code": "99215",
+      "issue_type": "UPCODING",
+      "severity": "HIGH",
+      "description": "Level 5 E/M billed but documentation supports Level 3",
+      "suggested_correction": "Downcode to 99213",
+      "confidence": 0.95
+    }
+  ],
+  "overall_confidence": 0.92,
+  "summary": "Brief narrative summary of the audit"
+}
+```
+
+If no issues are found, return an empty findings array with a high confidence score.

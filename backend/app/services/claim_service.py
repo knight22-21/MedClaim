@@ -66,7 +66,7 @@ async def create_claim(claim: ClaimCreate) -> ClaimResponse:
         raise RuntimeError("Failed to insert claim into database")
 
     row = result.data[0]
-    logger.info("claim.created", claim_id=row["id"], payer=claim.payer_name)
+    logger.info("claim.created | claim_id=%s payer=%s", row["id"], claim.payer_name)
     return _row_to_response(row)
 
 
@@ -133,7 +133,7 @@ async def update_claim_status(
     if not result.data:
         return None
 
-    logger.info("claim.status_updated", claim_id=claim_id, new_status=new_status.value)
+    logger.info("claim.status_updated | claim_id=%s new_status=%s", claim_id, new_status.value)
     return _row_to_response(result.data[0])
 
 
@@ -151,5 +151,5 @@ async def ingest_eob(claim_id: str, denial_reason_code: str, denial_reason_desc:
     if not result.data:
         return None
 
-    logger.info("claim.eob_ingested", claim_id=claim_id, denial_code=denial_reason_code)
+    logger.info("claim.eob_ingested | claim_id=%s denial_code=%s", claim_id, denial_reason_code)
     return _row_to_response(result.data[0])

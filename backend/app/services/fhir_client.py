@@ -109,7 +109,7 @@ class FHIRClient:
         r = await self._client.post("/Claim", json=claim_resource)
         r.raise_for_status()
         result = r.json()
-        logger.info("fhir.claim_created", claim_id=result.get("id"))
+        logger.info("fhir.claim_created | claim_id=%s", result.get("id"))
         return result
 
     async def get_claim(self, claim_id: str) -> dict[str, Any] | None:

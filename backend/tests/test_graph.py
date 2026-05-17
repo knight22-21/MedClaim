@@ -1,0 +1,205 @@
+"""
+MedClaim — LangGraph Pipeline Tests
+
+Tests the supervisor routing logic and graph traversal
+using mock ClaimState objects (no LLM or database calls needed).
+"""
+
+from __future__ import annotations
+
+from backend.agents.supervisor import (
+    route_claim,
+    NODE_ELIGIBILITY,
+    NODE_CODE_AUDIT,
+    NODE_DENIAL_PREDICTION,
+    NODE_APPEAL_DRAFTING,
+    NODE_HUMAN_REVIEW,
+    NODE_READY,
+    NODE_END,
+)
+from backend.agents.state import ClaimState
+from backend.agents.nodes import (
+    eligibility_check,
+    code_audit,
+    denial_prediction,
+    ready_for_submission,
+    appeal_drafting,
+    human_review,
+)
+
+
+def _base_state(**overrides) -> ClaimState:
+    """Create a minimal ClaimState with sensible defaults."""
+    state: ClaimState = {
+        "claim_id": "test-claim-001",
+        "patient_name": "Test Patient",
+        "patient_dob": "1990-01-01",
+        "payer_name": "Medicare",
+        "payer_id": "MCR-001",
+        "date_of_service": "2024-01-01",
+        "facility_type": "physician_office",
+        "diagnosis_codes": [{"code": "J18.9", "description": "Pneumonia"}],
+        "procedure_codes": [{"code": "99213", "description": "Office visit"}],
+        "billed_amount": 250.00,
+        "market": "US",
+        "status": "RECEIVED",
+        "current_agent": "supervisor",
+        "previous_agent": "",
+        "retry_count": 0,
+        "human_review_flag": False,
+        "human_review_reason": "",
+        "processing_errors": [],
+    }
+    state.update(overrides)
+    return state
+
+
+# ═══════════════════════════════════════════════════════════════
+# Supervisor Routing Tests
+# ═══════════════════════════════════════════════════════════════
+
+class TestSupervisorRouting:
+    """Test each branch of the deterministic routing table."""
+
+    def test_received_routes_to_eligibility(self):
+        state = _base_state(status="RECEIVED")
+        assert route_claim(state) == NODE_ELIGIBILITY
+
+    def test_eligibility_verified_routes_to_audit(self):
+        state = _base_state(status="ELIGIBILITY_VERIFIED")
+        assert route_claim(state) == NODE_CODE_AUDIT
+
+    def test_eligibility_failed_routes_to_end(self):
+        state = _base_state(status="ELIGIBILITY_FAILED")
+        assert route_claim(state) == NODE_END
+
+    def test_audit_high_confidence_routes_to_prediction(self):
+        state = _base_state(status="AUDIT_COMPLETE", audit_confidence=0.92)
+        assert route_claim(state) == NODE_DENIAL_PREDICTION
+
+    def test_audit_low_confidence_routes_to_human_review(self):
+        state = _base_state(status="AUDIT_COMPLETE", audit_confidence=0.62)
+        assert route_claim(state) == NODE_HUMAN_REVIEW
+
+    def test_audit_boundary_confidence_routes_to_prediction(self):
+        """Exactly 0.80 should pass (>= threshold)."""
+        state = _base_state(status="AUDIT_COMPLETE", audit_confidence=0.80)
+        assert route_claim(state) == NODE_DENIAL_PREDICTION
+
+    def test_low_risk_routes_to_ready(self):
+        state = _base_state(status="PREDICTION_COMPLETE", denial_risk_score=25)
+        assert route_claim(state) == NODE_READY
+
+    def test_high_risk_first_retry_routes_to_audit(self):
+        state = _base_state(status="PREDICTION_COMPLETE", denial_risk_score=85, retry_count=0)
+        assert route_claim(state) == NODE_CODE_AUDIT
+
+    def test_high_risk_second_retry_routes_to_audit(self):
+        state = _base_state(status="PREDICTION_COMPLETE", denial_risk_score=85, retry_count=1)
+        assert route_claim(state) == NODE_CODE_AUDIT
+
+    def test_high_risk_max_retries_routes_to_human_review(self):
+        state = _base_state(status="PREDICTION_COMPLETE", denial_risk_score=85, retry_count=2)
+        assert route_claim(state) == NODE_HUMAN_REVIEW
+
+    def test_boundary_risk_routes_to_ready(self):
+        """Exactly 70 should pass (<= threshold)."""
+        state = _base_state(status="PREDICTION_COMPLETE", denial_risk_score=70)
+        assert route_claim(state) == NODE_READY
+
+    def test_denied_routes_to_appeal(self):
+        state = _base_state(status="DENIED")
+        assert route_claim(state) == NODE_APPEAL_DRAFTING
+
+    def test_appeal_draft_ready_routes_to_end(self):
+        state = _base_state(status="APPEAL_DRAFT_READY")
+        assert route_claim(state) == NODE_END
+
+    def test_ready_for_submission_routes_to_end(self):
+        state = _base_state(status="READY_FOR_SUBMISSION")
+        assert route_claim(state) == NODE_END
+
+    def test_approved_routes_to_end(self):
+        state = _base_state(status="APPROVED")
+        assert route_claim(state) == NODE_END
+
+    def test_unknown_status_routes_to_end(self):
+        state = _base_state(status="TOTALLY_UNKNOWN")
+        assert route_claim(state) == NODE_END
+
+
+# ═══════════════════════════════════════════════════════════════
+# Node Function Tests
+# ═══════════════════════════════════════════════════════════════
+
+class TestNodeFunctions:
+    """Test that node functions return correct state updates."""
+
+    def test_eligibility_check_returns_verified(self):
+        state = _base_state()
+        result = eligibility_check(state)
+        assert result["status"] == "ELIGIBILITY_VERIFIED"
+        assert result["eligibility_result"]["is_eligible"] is True
+        assert result["current_agent"] == "eligibility_check"
+
+    def test_code_audit_returns_complete(self):
+        state = _base_state(status="ELIGIBILITY_VERIFIED")
+        result = code_audit(state)
+        assert result["status"] == "AUDIT_COMPLETE"
+        assert 0 <= result["audit_confidence"] <= 1
+        assert result["current_agent"] == "code_audit"
+
+    def test_denial_prediction_returns_score(self):
+        state = _base_state(status="AUDIT_COMPLETE", audit_confidence=0.92)
+        result = denial_prediction(state)
+        assert result["status"] == "PREDICTION_COMPLETE"
+        assert 0 <= result["denial_risk_score"] <= 100
+        assert result["recommended_action"] in ("SUBMIT_AS_IS", "CORRECT_AND_RESUBMIT", "ESCALATE_TO_HUMAN")
+
+    def test_ready_for_submission_sets_status(self):
+        state = _base_state()
+        result = ready_for_submission(state)
+        assert result["status"] == "READY_FOR_SUBMISSION"
+
+    def test_appeal_drafting_returns_letter(self):
+        state = _base_state(status="DENIED", denial_reason_code="CO-4")
+        result = appeal_drafting(state)
+        assert result["status"] == "APPEAL_DRAFT_READY"
+        assert "APPEAL LETTER" in result["appeal_letter_content"]
+        assert result["appeal_status"] == "DRAFT"
+
+    def test_human_review_flags_claim(self):
+        state = _base_state(status="AUDIT_COMPLETE", audit_confidence=0.55)
+        result = human_review(state)
+        assert result["status"] == "HUMAN_REVIEW_REQUIRED"
+        assert result["human_review_flag"] is True
+        assert "0.55" in result["human_review_reason"]
+
+
+# ═══════════════════════════════════════════════════════════════
+# Graph Compilation Test
+# ═══════════════════════════════════════════════════════════════
+
+class TestGraphCompilation:
+    """Test that the graph compiles and can be invoked."""
+
+    def test_graph_compiles(self):
+        from backend.agents.graph import build_graph
+        graph = build_graph()
+        compiled = graph.compile()
+        assert compiled is not None
+
+    def test_happy_path_traversal(self):
+        """Test the full happy path: RECEIVED → READY_FOR_SUBMISSION."""
+        from backend.agents.graph import build_graph
+
+        compiled = build_graph().compile()
+        initial_state = _base_state(status="RECEIVED")
+
+        result = compiled.invoke(initial_state)
+
+        # With placeholder nodes (auto-verify, 0.92 confidence, risk=25):
+        # RECEIVED → eligibility → ELIGIBILITY_VERIFIED → audit →
+        # AUDIT_COMPLETE → prediction → PREDICTION_COMPLETE (risk=25) →
+        # ready_for_submission → READY_FOR_SUBMISSION
+        assert result["status"] == "READY_FOR_SUBMISSION"

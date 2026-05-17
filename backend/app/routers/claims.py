@@ -61,7 +61,7 @@ async def ingest_claim(body: dict[str, Any]) -> APIResponse[ClaimResponse]:
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        logger.error("claim.ingest.failed", error=str(e))
+        logger.error("claim.ingest.failed | error=%s", str(e))
         raise HTTPException(status_code=500, detail="Failed to ingest claim")
 
 
@@ -103,7 +103,7 @@ async def ingest_denial_eob(claim_id: str, eob: EOBCreate) -> APIResponse[ClaimR
     if not result:
         raise HTTPException(status_code=500, detail="Failed to process EOB")
 
-    logger.info("claim.eob_ingested", claim_id=claim_id, denial_code=eob.denial_reason_code)
+    logger.info("claim.eob_ingested | claim_id=%s denial_code=%s", claim_id, eob.denial_reason_code)
     return APIResponse(success=True, data=result, message="EOB ingested, claim marked as DENIED")
 
 
@@ -138,5 +138,5 @@ async def approve_claim(claim_id: str, approval: ClaimApproval) -> APIResponse[C
         )
 
     result = await update_claim_status(claim_id, new_status)
-    logger.info("claim.approved", claim_id=claim_id, by=approval.approved_by, new_status=new_status)
+    logger.info("claim.approved | claim_id=%s by=%s new_status=%s", claim_id, approval.approved_by, new_status)
     return APIResponse(success=True, data=result, message=f"Claim approved → {new_status.value}")
