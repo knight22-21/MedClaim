@@ -27,44 +27,14 @@ def eligibility_check(state: ClaimState) -> dict[str, Any]:
     """
     Verify patient insurance eligibility.
 
-    Full implementation (Subphase 2.2) will:
-        1. Look up payer in payer_directory.yaml
-        2. Match against eligibility_fixtures.yaml
-        3. Check coverage active, procedure covered, provider in-network
-        4. Return structured EligibilityResult
-
-    Current: Placeholder that auto-verifies all claims.
+    Delegates to the EligibilityAgent which:
+        1. Looks up payer in payer_directory.yaml
+        2. Matches against eligibility_fixtures.yaml
+        3. Checks coverage active, procedure covered, provider in-network
+        4. Returns structured EligibilityResult
     """
-    claim_id = state.get("claim_id", "unknown")
-    start = time.time()
-    logger.info(
-        "node.eligibility.start | claim_id=%s",
-        claim_id,
-    )
-
-    # Placeholder: All claims pass eligibility
-    result = {
-        "is_eligible": True,
-        "coverage_active": True,
-        "procedure_covered": True,
-        "provider_in_network": True,
-        "failure_reason": "",
-    }
-
-    latency = int((time.time() - start) * 1000)
-    logger.info(
-        "node.eligibility.complete | claim_id=%s eligible=%s latency_ms=%s",
-        claim_id,
-        True,
-        latency,
-    )
-
-    return {
-        "eligibility_result": result,
-        "eligibility_status": "VERIFIED",
-        "status": "ELIGIBILITY_VERIFIED",
-        "current_agent": "eligibility_check",
-    }
+    from backend.agents.eligibility import run_eligibility_check
+    return run_eligibility_check(state)
 
 
 # ── Code Audit Node ─────────────────────────────────────────
