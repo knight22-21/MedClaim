@@ -200,7 +200,7 @@ async def process_claim(claim_id: str) -> dict[str, Any]:
     # 3. Run the graph
     compiled = get_compiled_graph()
     try:
-        final_state = compiled.invoke(initial_state)
+        final_state = await compiled.ainvoke(initial_state)
     except Exception as e:
         logger.error("pipeline.failed | claim_id=%s error=%s", claim_id, str(e))
         await update_claim_status(

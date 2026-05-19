@@ -43,45 +43,14 @@ def code_audit(state: ClaimState) -> dict[str, Any]:
     """
     Audit ICD-10/CPT codes for accuracy.
 
-    Full implementation (Subphase 2.3) will:
-        1. Retrieve coding rules from Qdrant (coding_rules collection)
-        2. Retrieve payer policies from Qdrant (payer_policies collection)
-        3. Call Groq LLM with structured prompt
-        4. Parse findings: upcoding, unbundling, missing modifiers
-        5. Return audit_findings + confidence score
-
-    Current: Placeholder returning a clean audit with high confidence.
+    Delegates to the CodeAuditAgent which:
+        1. Retrieves coding rules from Qdrant
+        2. Retrieves payer policies from Qdrant
+        3. Calls Groq/Gemini with structured system prompt
+        4. Parses findings: upcoding, unbundling, missing modifiers
     """
-    claim_id = state.get("claim_id", "unknown")
-    retry_count = state.get("retry_count", 0)
-    start = time.time()
-    logger.info("node.code_audit.start | claim_id=%s retry=%s", claim_id, retry_count)
-
-    # Placeholder: Clean audit with 0.92 confidence
-    findings = []
-    confidence = 0.92
-    summary = "All codes appear correctly assigned and supported by documentation."
-
-    # If this is a correction retry, simulate applying corrections
-    codes_corrected = retry_count > 0
-
-    latency = int((time.time() - start) * 1000)
-    logger.info(
-        "node.code_audit.complete | claim_id=%s findings_count=%s confidence=%.2f latency_ms=%s",
-        claim_id,
-        len(findings),
-        confidence,
-        latency,
-    )
-
-    return {
-        "audit_findings": findings,
-        "audit_confidence": confidence,
-        "audit_summary": summary,
-        "codes_corrected": codes_corrected,
-        "status": "AUDIT_COMPLETE",
-        "current_agent": "code_audit",
-    }
+    from backend.agents.code_audit import run_code_audit
+    return run_code_audit(state)
 
 
 # ── Denial Prediction Node ──────────────────────────────────

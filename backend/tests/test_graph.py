@@ -26,6 +26,7 @@ from backend.agents.nodes import (
     appeal_drafting,
     human_review,
 )
+from unittest.mock import patch
 
 
 def _base_state(**overrides) -> ClaimState:
@@ -142,9 +143,35 @@ class TestNodeFunctions:
         assert result["eligibility_result"]["is_eligible"] is True
         assert result["current_agent"] == "eligibility_check"
 
-    def test_code_audit_returns_complete(self):
+
+
+
+    @patch("backend.agents.code_audit.retrieve_with_scores")
+    @patch("backend.agents.code_audit.query_llm")
+    def test_code_audit_returns_complete(self, mock_query_llm, mock_retrieve):
+
+        # Mock RAG retrieval
+        mock_retrieve.return_value = []
+
+        # Mock LLM response
+        mock_query_llm.return_value = {
+            "content": "ok",
+            "json": {
+                "findings": [],
+                "overall_confidence": 0.92,
+                "summary": "No audit issues found",
+            },
+            "provider": "mock",
+            "model": "mock",
+            "latency_ms": 1,
+            "prompt_tokens": 1,
+            "completion_tokens": 1,
+        }
+
         state = _base_state(status="ELIGIBILITY_VERIFIED")
+
         result = code_audit(state)
+
         assert result["status"] == "AUDIT_COMPLETE"
         assert 0 <= result["audit_confidence"] <= 1
         assert result["current_agent"] == "code_audit"
@@ -189,17 +216,33 @@ class TestGraphCompilation:
         compiled = graph.compile()
         assert compiled is not None
 
-    def test_happy_path_traversal(self):
+    @patch("backend.agents.code_audit.retrieve_with_scores")
+    @patch("backend.agents.code_audit.query_llm")
+    def test_happy_path_traversal(self, mock_query_llm, mock_retrieve):
         """Test the full happy path: RECEIVED → READY_FOR_SUBMISSION."""
+
         from backend.agents.graph import build_graph
 
+        mock_retrieve.return_value = []
+
+        mock_query_llm.return_value = {
+            "content": "ok",
+            "json": {
+                "findings": [],
+                "overall_confidence": 0.92,
+                "summary": "No audit issues found",
+            },
+            "provider": "mock",
+            "model": "mock",
+            "latency_ms": 1,
+            "prompt_tokens": 1,
+            "completion_tokens": 1,
+        }
+
         compiled = build_graph().compile()
+
         initial_state = _base_state(status="RECEIVED")
 
         result = compiled.invoke(initial_state)
 
-        # With placeholder nodes (auto-verify, 0.92 confidence, risk=25):
-        # RECEIVED → eligibility → ELIGIBILITY_VERIFIED → audit →
-        # AUDIT_COMPLETE → prediction → PREDICTION_COMPLETE (risk=25) →
-        # ready_for_submission → READY_FOR_SUBMISSION
         assert result["status"] == "READY_FOR_SUBMISSION"
