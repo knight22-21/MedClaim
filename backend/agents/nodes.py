@@ -55,42 +55,18 @@ def code_audit(state: ClaimState) -> dict[str, Any]:
 
 # ── Denial Prediction Node ──────────────────────────────────
 
-def denial_prediction(state: ClaimState) -> dict[str, Any]:
+async def denial_prediction(state: ClaimState) -> dict[str, Any]:
     """
     Predict denial risk using historical patterns.
 
-    Full implementation (Subphase 2.4) will:
-        1. Retrieve similar claims from Qdrant (denial_patterns collection)
-        2. Build few-shot prompt with historical outcomes
-        3. Call Groq LLM for risk assessment
-        4. Return risk_score (0-100) + risk_factors
-
-    Current: Placeholder returning low risk (score=25).
+    Delegates to the DenialPredictionAgent which:
+        1. Retrieves similar claims from Qdrant (denial_patterns)
+        2. Renders denial_prediction.j2 prompt with audit context
+        3. Calls Groq/Gemini for risk assessment
+        4. Returns risk_score (0-100) + risk_factors + recommended_action
     """
-    claim_id = state.get("claim_id", "unknown")
-    start = time.time()
-    logger.info("node.denial_prediction.start | claim_id=%s", claim_id)
-
-    risk_score = 25
-    risk_factors = []
-    recommended_action = "SUBMIT_AS_IS"
-
-    latency = int((time.time() - start) * 1000)
-    logger.info(
-        "node.denial_prediction.complete | claim_id=%s risk_score=%s recommended_action=%s latency_ms=%s",
-        claim_id,
-        risk_score,
-        recommended_action,
-        latency,
-    )
-
-    return {
-        "denial_risk_score": risk_score,
-        "risk_factors": risk_factors,
-        "recommended_action": recommended_action,
-        "status": "PREDICTION_COMPLETE",
-        "current_agent": "denial_prediction",
-    }
+    from backend.agents.denial_prediction import run_denial_prediction
+    return await run_denial_prediction(state)
 
 
 # ── Ready for Submission Node ────────────────────────────────
