@@ -58,7 +58,7 @@ def _format_denial_patterns(results: list[tuple[Any, float]]) -> str:
     return "\n\n".join(formatted)
 
 
-async def run_denial_prediction(state: ClaimState) -> dict[str, Any]:
+def run_denial_prediction(state: ClaimState) -> dict[str, Any]:
     """
     Execute the Denial Prediction Agent.
 
@@ -128,7 +128,7 @@ async def run_denial_prediction(state: ClaimState) -> dict[str, Any]:
         )
 
         # ── Step 3: Query LLM ────────────────────────────────
-        llm_response = await query_llm(
+        llm_response = query_llm(
             prompt=user_prompt,
             system_prompt=system_prompt,
             preferred_provider="groq",

@@ -55,7 +55,7 @@ def code_audit(state: ClaimState) -> dict[str, Any]:
 
 # ── Denial Prediction Node ──────────────────────────────────
 
-async def denial_prediction(state: ClaimState) -> dict[str, Any]:
+def denial_prediction(state: ClaimState) -> dict[str, Any]:
     """
     Predict denial risk using historical patterns.
 
@@ -66,7 +66,7 @@ async def denial_prediction(state: ClaimState) -> dict[str, Any]:
         4. Returns risk_score (0-100) + risk_factors + recommended_action
     """
     from backend.agents.denial_prediction import run_denial_prediction
-    return await run_denial_prediction(state)
+    return run_denial_prediction(state)
 
 
 # ── Ready for Submission Node ────────────────────────────────
