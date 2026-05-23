@@ -17,6 +17,7 @@ from backend.agents.supervisor import (
     NODE_READY,
     NODE_END,
 )
+import pytest
 from backend.agents.state import ClaimState
 from backend.agents.nodes import (
     eligibility_check,
@@ -188,9 +189,10 @@ class TestNodeFunctions:
         result = ready_for_submission(state)
         assert result["status"] == "READY_FOR_SUBMISSION"
 
-    def test_appeal_drafting_returns_letter(self):
+    @pytest.mark.asyncio
+    async def test_appeal_drafting_returns_letter(self):
         state = _base_state(status="DENIED", denial_reason_code="CO-4")
-        result = appeal_drafting(state)
+        result = await appeal_drafting(state)
         assert result["status"] == "APPEAL_DRAFT_READY"
         assert "APPEAL LETTER" in result["appeal_letter_content"]
         assert result["appeal_status"] == "DRAFT"
