@@ -69,6 +69,7 @@ COLLECTIONS = {
             "category": PayloadSchemaType.KEYWORD,
             "payer_specificity": PayloadSchemaType.KEYWORD,  # UNIVERSAL or payer name
             "source": PayloadSchemaType.KEYWORD,           # CMS, AHA_GUIDELINE
+            "market": PayloadSchemaType.KEYWORD,
         },
     },
     "payer_policies": {

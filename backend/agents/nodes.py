@@ -6,14 +6,18 @@ Each function is a graph node that:
     2. Performs its processing (LLM call, RAG lookup, etc.)
     3. Returns a PARTIAL state dict with only the fields it updates
 
-These are placeholder implementations for Subphase 2.1.
-Full LLM-powered logic is implemented in Subphases 2.2–2.6.
+Node signatures:
+    - eligibility_check  (sync)  — YAML fixture lookup, no LLM
+    - code_audit         (async) — RAG + LLM via Groq/Gemini
+    - denial_prediction  (async) — RAG + LLM via Groq/Gemini
+    - ready_for_submission (sync) — terminal status marker
+    - appeal_drafting    (async) — RAG + LLM via Gemini (long context)
+    - human_review       (sync)  — terminal escalation marker
 """
 
 from __future__ import annotations
 
 import logging
-import time
 from typing import Any
 
 from backend.agents.state import ClaimState
@@ -39,7 +43,7 @@ def eligibility_check(state: ClaimState) -> dict[str, Any]:
 
 # ── Code Audit Node ─────────────────────────────────────────
 
-def code_audit(state: ClaimState) -> dict[str, Any]:
+async def code_audit(state: ClaimState) -> dict[str, Any]:
     """
     Audit ICD-10/CPT codes for accuracy.
 
@@ -50,12 +54,12 @@ def code_audit(state: ClaimState) -> dict[str, Any]:
         4. Parses findings: upcoding, unbundling, missing modifiers
     """
     from backend.agents.code_audit import run_code_audit
-    return run_code_audit(state)
+    return await run_code_audit(state)
 
 
 # ── Denial Prediction Node ──────────────────────────────────
 
-def denial_prediction(state: ClaimState) -> dict[str, Any]:
+async def denial_prediction(state: ClaimState) -> dict[str, Any]:
     """
     Predict denial risk using historical patterns.
 
@@ -66,7 +70,7 @@ def denial_prediction(state: ClaimState) -> dict[str, Any]:
         4. Returns risk_score (0-100) + risk_factors + recommended_action
     """
     from backend.agents.denial_prediction import run_denial_prediction
-    return run_denial_prediction(state)
+    return await run_denial_prediction(state)
 
 
 # ── Ready for Submission Node ────────────────────────────────

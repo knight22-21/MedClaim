@@ -51,7 +51,7 @@ class FHIRClient:
                 "software": data.get("software", {}).get("name", "unknown"),
             }
         except Exception as e:
-            logger.warning("fhir.connectivity_failed", error=str(e))
+            logger.warning("fhir.connectivity_failed | error=%s", e)
             return {"status": "disconnected", "error": str(e)}
 
     # ── Patient ───────────────────────────────────────────────
@@ -69,7 +69,7 @@ class FHIRClient:
         r = await self._client.post("/Patient", json=resource)
         r.raise_for_status()
         result = r.json()
-        logger.info("fhir.patient_created", patient_id=result.get("id"))
+        logger.info("fhir.patient_created | patient_id=%s", result.get("id"))
         return result
 
     async def get_patient(self, patient_id: str) -> dict[str, Any] | None:
@@ -98,7 +98,7 @@ class FHIRClient:
         r = await self._client.post("/Encounter", json=resource)
         r.raise_for_status()
         result = r.json()
-        logger.info("fhir.encounter_created", encounter_id=result.get("id"))
+        logger.info("fhir.encounter_created | encounter_id=%s", result.get("id"))
         return result
 
     # ── Claim ─────────────────────────────────────────────────

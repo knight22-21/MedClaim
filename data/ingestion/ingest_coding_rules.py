@@ -129,6 +129,7 @@ def parse_icd10_order_file(filepath: Path, limit: int | None = None) -> list[dic
                 "code_type": "ICD10",
                 "payer_specificity": "UNIVERSAL",
                 "source": "CMS",
+                "market": "US",
             })
 
             if limit and len(records) >= limit:
@@ -194,6 +195,7 @@ def build_cpt_records() -> list[dict]:
             "code_type": "CPT",
             "payer_specificity": "UNIVERSAL",
             "source": "CMS",
+            "market": "US",
         })
     return records
 
@@ -229,6 +231,7 @@ def ingest_to_qdrant(records: list[dict], batch_size: int = BATCH_SIZE) -> int:
                     "category": rec["category"],
                     "payer_specificity": rec["payer_specificity"],
                     "source": rec["source"],
+                    "market": "US",
                     "is_billable": rec["is_billable"],
                     "text": texts[batch.index(rec)],
                 },

@@ -49,7 +49,7 @@ def _format_rag_docs(results: list[tuple[Any, float]]) -> str:
     return "\n\n".join(formatted)
 
 
-def run_code_audit(state: ClaimState) -> dict[str, Any]:
+async def run_code_audit(state: ClaimState) -> dict[str, Any]:
     """
     Execute the Code Audit Agent.
 
@@ -118,7 +118,7 @@ def run_code_audit(state: ClaimState) -> dict[str, Any]:
 
         # Step 3: Query the LLM
         # Groq is fast and cheap, excellent for the audit agent
-        llm_response = query_llm(
+        llm_response = await query_llm(
             prompt=user_prompt,
             system_prompt=system_prompt,
             preferred_provider="groq",

@@ -58,7 +58,7 @@ def _format_denial_patterns(results: list[tuple[Any, float]]) -> str:
     return "\n\n".join(formatted)
 
 
-def run_denial_prediction(state: ClaimState) -> dict[str, Any]:
+async def run_denial_prediction(state: ClaimState) -> dict[str, Any]:
     """
     Execute the Denial Prediction Agent.
 
@@ -128,7 +128,7 @@ def run_denial_prediction(state: ClaimState) -> dict[str, Any]:
         )
 
         # ── Step 3: Query LLM ────────────────────────────────
-        llm_response = query_llm(
+        llm_response = await query_llm(
             prompt=user_prompt,
             system_prompt=system_prompt,
             preferred_provider="groq",
@@ -177,8 +177,14 @@ def run_denial_prediction(state: ClaimState) -> dict[str, Any]:
         prompt_tokens = llm_response.get("prompt_tokens", 0)
         completion_tokens = llm_response.get("completion_tokens", 0)
 
+        retry_count = state.get("retry_count", 0)
+
+        if risk_score > 70:
+            retry_count += 1        
+
         return {
             "denial_risk_score": risk_score,
+            "retry_count": retry_count,
             "risk_factors": normalized_factors,
             "recommended_action": recommended_action,
             "status": "PREDICTION_COMPLETE",

@@ -2,10 +2,17 @@
 MedClaim — LangGraph Pipeline Tests
 
 Tests the supervisor routing logic and graph traversal
-using mock ClaimState objects (no LLM or database calls needed).
+using mock ClaimState objects.
+
+Node functions that call LLM/RAG are mocked so these tests
+run without external services.
 """
 
 from __future__ import annotations
+
+from unittest.mock import patch
+
+import pytest
 
 from backend.agents.supervisor import (
     route_claim,
@@ -17,7 +24,6 @@ from backend.agents.supervisor import (
     NODE_READY,
     NODE_END,
 )
-import pytest
 from backend.agents.state import ClaimState
 from backend.agents.nodes import (
     eligibility_check,
@@ -27,7 +33,6 @@ from backend.agents.nodes import (
     appeal_drafting,
     human_review,
 )
-from unittest.mock import patch
 
 
 def _base_state(**overrides) -> ClaimState:
@@ -51,6 +56,10 @@ def _base_state(**overrides) -> ClaimState:
         "human_review_flag": False,
         "human_review_reason": "",
         "processing_errors": [],
+        "total_prompt_tokens": 0,
+        "total_completion_tokens": 0,
+        "total_latency_ms": 0,
+        "llm_calls": [],
     }
     state.update(overrides)
     return state
@@ -144,17 +153,11 @@ class TestNodeFunctions:
         assert result["eligibility_result"]["is_eligible"] is True
         assert result["current_agent"] == "eligibility_check"
 
-
-
-
+    @pytest.mark.asyncio
     @patch("backend.agents.code_audit.retrieve_with_scores")
     @patch("backend.agents.code_audit.query_llm")
-    def test_code_audit_returns_complete(self, mock_query_llm, mock_retrieve):
-
-        # Mock RAG retrieval
+    async def test_code_audit_returns_complete(self, mock_query_llm, mock_retrieve):
         mock_retrieve.return_value = []
-
-        # Mock LLM response
         mock_query_llm.return_value = {
             "content": "ok",
             "json": {
@@ -170,19 +173,39 @@ class TestNodeFunctions:
         }
 
         state = _base_state(status="ELIGIBILITY_VERIFIED")
-
-        result = code_audit(state)
+        result = await code_audit(state)
 
         assert result["status"] == "AUDIT_COMPLETE"
         assert 0 <= result["audit_confidence"] <= 1
         assert result["current_agent"] == "code_audit"
 
-    def test_denial_prediction_returns_score(self):
+    @pytest.mark.asyncio
+    @patch("backend.agents.denial_prediction.retrieve_with_scores")
+    @patch("backend.agents.denial_prediction.query_llm")
+    async def test_denial_prediction_returns_score(self, mock_query_llm, mock_retrieve):
+        mock_retrieve.return_value = []
+        mock_query_llm.return_value = {
+            "content": "ok",
+            "json": {
+                "risk_score": 25,
+                "risk_factors": [],
+                "recommended_action": "SUBMIT_AS_IS",
+            },
+            "provider": "mock",
+            "model": "mock",
+            "latency_ms": 1,
+            "prompt_tokens": 1,
+            "completion_tokens": 1,
+        }
+
         state = _base_state(status="AUDIT_COMPLETE", audit_confidence=0.92)
-        result = denial_prediction(state)
+        result = await denial_prediction(state)
+
         assert result["status"] == "PREDICTION_COMPLETE"
         assert 0 <= result["denial_risk_score"] <= 100
-        assert result["recommended_action"] in ("SUBMIT_AS_IS", "CORRECT_AND_RESUBMIT", "ESCALATE_TO_HUMAN")
+        assert result["recommended_action"] in (
+            "SUBMIT_AS_IS", "CORRECT_AND_RESUBMIT", "ESCALATE_TO_HUMAN"
+        )
 
     def test_ready_for_submission_sets_status(self):
         state = _base_state()
@@ -190,9 +213,15 @@ class TestNodeFunctions:
         assert result["status"] == "READY_FOR_SUBMISSION"
 
     @pytest.mark.asyncio
-    async def test_appeal_drafting_returns_letter(self):
+    @patch("backend.agents.appeal_drafting.retrieve_with_scores")
+    @patch("backend.agents.appeal_drafting.query_llm")
+    async def test_appeal_drafting_returns_letter(self, mock_query_llm, mock_retrieve):
+        mock_retrieve.return_value = []
+        mock_query_llm.side_effect = RuntimeError("Not configured")  # trigger fallback
+
         state = _base_state(status="DENIED", denial_reason_code="CO-4")
         result = await appeal_drafting(state)
+
         assert result["status"] == "APPEAL_DRAFT_READY"
         assert "APPEAL LETTER" in result["appeal_letter_content"]
         assert result["appeal_status"] == "DRAFT"
@@ -218,33 +247,50 @@ class TestGraphCompilation:
         compiled = graph.compile()
         assert compiled is not None
 
+    @pytest.mark.asyncio
+    @patch("backend.agents.denial_prediction.retrieve_with_scores")
+    @patch("backend.agents.denial_prediction.query_llm")
     @patch("backend.agents.code_audit.retrieve_with_scores")
     @patch("backend.agents.code_audit.query_llm")
-    def test_happy_path_traversal(self, mock_query_llm, mock_retrieve):
+    async def test_happy_path_traversal(
+        self,
+        mock_audit_llm,
+        mock_audit_retrieve,
+        mock_pred_llm,
+        mock_pred_retrieve,
+    ):
         """Test the full happy path: RECEIVED → READY_FOR_SUBMISSION."""
-
         from backend.agents.graph import build_graph
 
-        mock_retrieve.return_value = []
-
-        mock_query_llm.return_value = {
+        # Mock code audit
+        mock_audit_retrieve.return_value = []
+        mock_audit_llm.return_value = {
             "content": "ok",
             "json": {
                 "findings": [],
                 "overall_confidence": 0.92,
-                "summary": "No audit issues found",
+                "summary": "Clean audit",
             },
-            "provider": "mock",
-            "model": "mock",
-            "latency_ms": 1,
-            "prompt_tokens": 1,
-            "completion_tokens": 1,
+            "provider": "mock", "model": "mock",
+            "latency_ms": 1, "prompt_tokens": 1, "completion_tokens": 1,
+        }
+
+        # Mock denial prediction
+        mock_pred_retrieve.return_value = []
+        mock_pred_llm.return_value = {
+            "content": "ok",
+            "json": {
+                "risk_score": 25,
+                "risk_factors": [],
+                "recommended_action": "SUBMIT_AS_IS",
+            },
+            "provider": "mock", "model": "mock",
+            "latency_ms": 1, "prompt_tokens": 1, "completion_tokens": 1,
         }
 
         compiled = build_graph().compile()
-
         initial_state = _base_state(status="RECEIVED")
 
-        result = compiled.invoke(initial_state)
+        result = await compiled.ainvoke(initial_state)
 
         assert result["status"] == "READY_FOR_SUBMISSION"

@@ -217,7 +217,7 @@ class TestEligibilityAgent:
 class TestEligibilityGraphIntegration:
     """Test that eligibility results flow correctly through the graph."""
 
-    def test_eligible_claim_reaches_code_audit(self):
+    async def test_eligible_claim_reaches_code_audit(self):
         """An eligible claim should flow: eligibility → code_audit → ... → ready."""
         from backend.agents.graph import build_graph
 
@@ -228,7 +228,7 @@ class TestEligibilityGraphIntegration:
             procedure_codes=[{"code": "99213"}],
         )
 
-        result = compiled.invoke(state)
+        result = await compiled.ainvoke(state)
         # With placeholders for audit (0.92 confidence) and prediction (risk=25),
         # an eligible claim should reach READY_FOR_SUBMISSION
         assert result["status"] == "READY_FOR_SUBMISSION"

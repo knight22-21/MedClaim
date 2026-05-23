@@ -109,34 +109,25 @@ def get_embedding_function(prefer_ollama: bool = True) -> EmbeddingFunction:
             test_result = embeddings.embed_query("test")
             if len(test_result) == VECTOR_DIMENSION:
                 logger.info(
-                    "Using Ollama embeddings",
-                    model=OLLAMA_MODEL,
-                    dimension=VECTOR_DIMENSION,
+                    f"Using Ollama embeddings (model={OLLAMA_MODEL}, dimension={VECTOR_DIMENSION})"
                 )
                 return embeddings
             else:
                 logger.warning(
-                    "Ollama returned unexpected dimension",
-                    expected=VECTOR_DIMENSION,
-                    actual=len(test_result),
-                )
+                    f"Ollama returned unexpected dimension (expected={VECTOR_DIMENSION}, actual={len(test_result)})")
         except Exception as e:
             logger.warning(
-                "Ollama unavailable, trying HuggingFace fallback",
-                error=str(e),
-            )
+                f"Ollama unavailable, trying HuggingFace fallback: {e}")
 
     # Fallback to HuggingFace
     try:
         embeddings = get_hf_embeddings()
         logger.info(
-            "Using HuggingFace Inference API embeddings",
-            model=HF_MODEL,
-            dimension=VECTOR_DIMENSION,
+            f"Using HuggingFace Inference API embeddings (model={HF_MODEL}, dimension={VECTOR_DIMENSION})"
         )
         return embeddings
     except Exception as e:
-        logger.error("HuggingFace fallback also failed", error=str(e))
+        logger.error(f"HuggingFace fallback also failed: {e}")
 
     raise RuntimeError(
         "No embedding backend available. Either:\n"

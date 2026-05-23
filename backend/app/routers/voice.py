@@ -38,7 +38,7 @@ async def voice_query(audio: UploadFile = File(...)) -> APIResponse:
     """
     filename = audio.filename or "unknown"
     content_type = audio.content_type or "unknown"
-    logger.info("voice.query.received", filename=filename, content_type=content_type)
+    logger.info("voice.query.received | filename=%s content_type=%s", filename, content_type)
 
     # TODO: Phase 3 — Whisper transcription + query routing + Coqui TTS
     return APIResponse(

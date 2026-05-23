@@ -142,11 +142,11 @@ def get_retriever(
     search_kwargs["score_threshold"] = threshold
 
     logger.info(
-        "retriever.configured",
-        collection=collection_name,
-        top_k=k,
-        threshold=threshold,
-        filters=list(filter_kwargs.keys()) if filter_kwargs else [],
+        "retriever.configured"
+        f" (collection={collection_name}, "
+        f"top_k={k}, "
+        f"threshold={threshold}, "
+        f"filters={list(filter_kwargs.keys()) if filter_kwargs else []})"
     )
 
     return vector_store.as_retriever(
@@ -192,25 +192,24 @@ def retrieve_with_scores(
         top_score = results[0][1]
         if top_score < threshold:
             logger.warning(
-                "retrieval.low_confidence",
-                collection=collection_name,
-                query_preview=query[:100],
-                top_score=round(top_score, 4),
-                threshold=threshold,
-                num_results=len(results),
+                "retrieval.low_confidence "
+                f"(collection={collection_name}, "
+                f"query_preview={query[:100]}, "
+                f"top_score={round(top_score, 4)}, "
+                f"threshold={threshold}, "
+                f"num_results={len(results)}",
             )
         else:
             logger.info(
-                "retrieval.success",
-                collection=collection_name,
-                top_score=round(top_score, 4),
-                num_results=len(results),
-            )
+                "retrieval.success"
+                f" (collection={collection_name}, "
+                f"top_score={round(top_score, 4)}, "
+                f"num_results={len(results)}")
     else:
         logger.warning(
-            "retrieval.no_results",
-            collection=collection_name,
-            query_preview=query[:100],
+            "retrieval.no_results"
+            f" (collection={collection_name}, "
+            f"query_preview={query[:100]}",
         )
 
     return results
