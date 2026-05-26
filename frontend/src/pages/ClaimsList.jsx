@@ -55,7 +55,7 @@ export default function ClaimsList() {
           <button className="btn btn-glass"><Filter size={16}/> Filter</button>
           <div className="glass-panel" style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '8px' }}>
             <Search size={16} color="var(--text-muted)" />
-            <input type="text" placeholder="Search claims..." style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none' }} />
+            <input type="text" placeholder="Search claims..." style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none' }} />
           </div>
         </div>
       </div>

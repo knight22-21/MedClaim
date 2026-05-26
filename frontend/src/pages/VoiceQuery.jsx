@@ -133,7 +133,7 @@ export default function VoiceQuery() {
                 padding: '16px', 
                 borderRadius: '16px',
                 borderBottomRightRadius: msg.role === 'user' ? 0 : '16px',
-                borderBottomLeftRadius: msg.role === 'ai' ? 0 : '16px',
+                color: msg.role === 'user' ? '#fff' : 'inherit',
               }}>
                 <div style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</div>
                 
@@ -183,7 +183,7 @@ export default function VoiceQuery() {
               value={queryText}
               onChange={(e) => setQueryText(e.target.value)}
               placeholder="Type your query or use the microphone..." 
-              style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid var(--border-glass)', borderRadius: '24px', padding: '0 20px', color: 'white', outline: 'none' }}
+              style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid var(--border-glass)', borderRadius: '24px', padding: '0 20px', color: 'var(--text-primary)', outline: 'none' }}
               disabled={loading || isRecording}
             />
             <button type="submit" className="btn btn-primary" style={{ borderRadius: '50%', width: '48px', height: '48px', padding: 0 }} disabled={loading || !queryText.trim()}>
