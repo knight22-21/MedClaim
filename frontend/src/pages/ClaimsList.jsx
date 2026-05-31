@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
-import { Search, Filter, ChevronRight, Play } from 'lucide-react';
+import { Search, Filter, ChevronRight, Play, Plus } from 'lucide-react';
 
 export default function ClaimsList() {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const fetchClaims = async () => {
     try {
       const res = await api.getClaims();
-      setClaims(res.data.data || []);
+      setClaims(res.data.data?.claims || []);
     } catch (err) {
       console.error("Failed to fetch claims", err);
     } finally {
@@ -29,6 +31,28 @@ export default function ClaimsList() {
       fetchClaims();
     } catch (err) {
       alert("Error starting pipeline");
+    }
+  };
+
+  const handleNewDummyClaim = async () => {
+    const dummyClaim = {
+      patient_name: "Jane Doe",
+      patient_dob: "1988-05-12",
+      payer_name: "Medicare",
+      payer_id: "MCR-001",
+      date_of_service: new Date().toISOString().split('T')[0],
+      facility_type: "physician_office",
+      diagnosis_codes: [{ code: "J18.9", description: "Pneumonia" }],
+      procedure_codes: [{ code: "99213", description: "Office visit" }, { code: "99214", description: "Upcoded visit" }],
+      billed_amount: 350.00,
+      market: "US"
+    };
+
+    try {
+      await api.ingestClaim(dummyClaim);
+      fetchClaims();
+    } catch (err) {
+      alert("Failed to create dummy claim.");
     }
   };
 
@@ -52,6 +76,9 @@ export default function ClaimsList() {
           <p style={{ color: 'var(--text-secondary)' }}>View and manage all ingested medical claims.</p>
         </div>
         <div className="flex gap-4">
+          <button className="btn btn-primary" onClick={handleNewDummyClaim}>
+            <Plus size={16}/> New Claim
+          </button>
           <button className="btn btn-glass"><Filter size={16}/> Filter</button>
           <div className="glass-panel" style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '8px', borderRadius: '8px' }}>
             <Search size={16} color="var(--text-muted)" />
@@ -82,7 +109,13 @@ export default function ClaimsList() {
               claims.map(claim => {
                 const statusColors = getStatusColor(claim.status);
                 return (
-                  <tr key={claim.id} style={{ borderBottom: '1px solid var(--border-glass)', cursor: 'pointer', transition: 'background 0.2s' }} className="hover:bg-white/5">
+                  <tr 
+                    key={claim.id} 
+                    onClick={() => navigate(`/claims/${claim.id}`)}
+                    style={{ borderBottom: '1px solid var(--border-glass)', cursor: 'pointer', transition: 'background 0.2s' }} 
+                    onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-surface-hover)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
                     <td style={{ padding: '16px 24px', fontFamily: 'monospace' }}>{claim.id.substring(0,8)}...</td>
                     <td style={{ padding: '16px 24px', fontWeight: 500 }}>{claim.patient_name}</td>
                     <td style={{ padding: '16px 24px', color: 'var(--text-secondary)' }}>{claim.date_of_service}</td>

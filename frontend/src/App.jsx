@@ -6,6 +6,7 @@ import DashboardHome from './pages/DashboardHome';
 import ClaimsList from './pages/ClaimsList';
 import Analytics from './pages/Analytics';
 import VoiceQuery from './pages/VoiceQuery';
+import ClaimDetail from './pages/ClaimDetail';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -73,6 +74,7 @@ function App() {
             <Routes>
               <Route path="/" element={<DashboardHome />} />
               <Route path="/claims" element={<ClaimsList />} />
+              <Route path="/claims/:id" element={<ClaimDetail />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/voice" element={<VoiceQuery />} />
             </Routes>
