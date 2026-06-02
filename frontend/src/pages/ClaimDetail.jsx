@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, pollJobUntilDone } from '../api/client';
-import { ArrowLeft, CheckCircle, AlertTriangle, Play, FileText, User, Loader } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertTriangle, Play, FileText, User, Loader, ShieldAlert } from 'lucide-react';
 
 export default function ClaimDetail() {
   const { id } = useParams();
@@ -9,6 +9,8 @@ export default function ClaimDetail() {
   const [claim, setClaim] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pipelineStatus, setPipelineStatus] = useState(null); // null | "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED"
+  const [hitlNotes, setHitlNotes] = useState("");
+  const [hitlSubmitting, setHitlSubmitting] = useState(false);
 
   const fetchClaim = async () => {
     try {
@@ -35,12 +37,40 @@ export default function ClaimDetail() {
         setPipelineStatus(job.status);
       });
 
-      // Refresh claim data to show new audit/prediction results
       await fetchClaim();
-      
       setTimeout(() => setPipelineStatus(null), 3000);
     } catch (err) {
       setPipelineStatus("FAILED");
+    }
+  };
+
+  const handleHitlAction = async (action) => {
+    if (!hitlNotes.trim() && action === 'reject') {
+      alert("Please provide notes for rejecting the claim.");
+      return;
+    }
+
+    setHitlSubmitting(true);
+    try {
+      const payload = {
+        human_approved: true, // true just signals human processed it
+        approved_by: "specialist_user",
+        notes: hitlNotes
+      };
+
+      if (action === 'approve') {
+        await api.approveClaim(id, payload);
+      } else {
+        await api.rejectClaim(id, payload);
+      }
+      
+      setHitlNotes("");
+      await fetchClaim();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to submit HITL decision.");
+    } finally {
+      setHitlSubmitting(false);
     }
   };
 
@@ -59,7 +89,7 @@ export default function ClaimDetail() {
           <p style={{ color: 'var(--text-secondary)' }}>ID: {claim.id}</p>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' }}>
+          <span className="badge" style={{ background: claim.status === 'HUMAN_REVIEW_REQUIRED' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(59, 130, 246, 0.1)', color: claim.status === 'HUMAN_REVIEW_REQUIRED' ? 'var(--warning)' : 'var(--primary)' }}>
             {claim.status.replace(/_/g, ' ')}
           </span>
           {pipelineStatus ? (
@@ -81,6 +111,56 @@ export default function ClaimDetail() {
           ) : null}
         </div>
       </div>
+
+      {/* HITL Override Panel */}
+      {claim.status === 'HUMAN_REVIEW_REQUIRED' && (
+        <div className="glass-card" style={{ background: 'var(--bg-surface)', borderLeft: '4px solid var(--warning)' }}>
+          <div className="flex items-start gap-4">
+            <ShieldAlert size={24} color="var(--warning)" style={{ marginTop: '4px' }} />
+            <div style={{ flex: 1 }}>
+              <h3 style={{ color: 'var(--text-primary)', marginBottom: '8px' }}>Human Review Required</h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                Reason: {claim.human_review_reason || "The AI pipeline flagged this claim for specialist override."}
+              </p>
+              <textarea 
+                value={hitlNotes}
+                onChange={(e) => setHitlNotes(e.target.value)}
+                placeholder="Enter specialist notes, justification, or correction instructions..."
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-glass)',
+                  background: 'var(--bg-dark)',
+                  color: 'var(--text-primary)',
+                  marginBottom: '16px',
+                  minHeight: '80px',
+                  fontFamily: 'Inter'
+                }}
+                disabled={hitlSubmitting}
+              />
+              <div className="flex gap-4">
+                <button 
+                  className="btn btn-primary" 
+                  style={{ background: 'var(--success)', borderColor: 'var(--success)' }}
+                  onClick={() => handleHitlAction('approve')}
+                  disabled={hitlSubmitting}
+                >
+                  Approve as Correct
+                </button>
+                <button 
+                  className="btn btn-primary" 
+                  style={{ background: 'var(--danger)', borderColor: 'var(--danger)' }}
+                  onClick={() => handleHitlAction('reject')}
+                  disabled={hitlSubmitting}
+                >
+                  Reject & Deny
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         {/* Left Column: Basic Info */}

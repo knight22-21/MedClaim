@@ -14,6 +14,8 @@ export const api = {
   getClaims: () => apiClient.get('/claims'),
   getClaim: (id) => apiClient.get(`/claims/${id}`),
   ingestClaim: (claimData) => apiClient.post('/claims', claimData),
+  approveClaim: (id, approvalData) => apiClient.post(`/claims/${id}/approve`, approvalData),
+  rejectClaim: (id, rejectionData) => apiClient.post(`/claims/${id}/reject`, rejectionData),
   
   // Analytics
   getSummary: () => apiClient.get('/analytics/summary'),

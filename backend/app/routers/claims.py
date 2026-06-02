@@ -32,6 +32,7 @@ from backend.app.services.claim_service import (
     ingest_eob,
     list_claims,
     update_claim_status,
+    save_human_feedback,
 )
 
 logger = logging.getLogger("medclaim.routers.claims")
@@ -128,6 +129,7 @@ async def approve_claim(claim_id: str, approval: ClaimApproval) -> APIResponse[C
         ClaimStatus.CORRECTION_PENDING: ClaimStatus.READY_FOR_SUBMISSION,
         ClaimStatus.APPEAL_PENDING_APPROVAL: ClaimStatus.APPEAL_SUBMITTED,
         ClaimStatus.READY_FOR_SUBMISSION: ClaimStatus.SUBMITTED,
+        ClaimStatus.HUMAN_REVIEW_REQUIRED: ClaimStatus.READY_FOR_SUBMISSION,
     }
 
     new_status = status_transitions.get(claim.status)
@@ -137,6 +139,27 @@ async def approve_claim(claim_id: str, approval: ClaimApproval) -> APIResponse[C
             detail=f"Claim in status {claim.status} cannot be approved",
         )
 
-    result = await update_claim_status(claim_id, new_status)
+    result = await update_claim_status(claim_id, new_status, human_review_flag=False, human_review_reason=approval.notes)
+    await save_human_feedback(claim_id, approval.approved_by, "APPROVED_OVERRIDE", approval.notes)
     logger.info("claim.approved | claim_id=%s by=%s new_status=%s", claim_id, approval.approved_by, new_status)
     return APIResponse(success=True, data=result, message=f"Claim approved → {new_status.value}")
+
+@router.post("/{claim_id}/reject", response_model=APIResponse[ClaimResponse])
+async def reject_claim(claim_id: str, rejection: ClaimApproval) -> APIResponse[ClaimResponse]:
+    """
+    Reject a claim during human review, moving it to DENIED.
+    """
+    claim = await get_claim(claim_id)
+    if not claim:
+        raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found")
+
+    if claim.status != ClaimStatus.HUMAN_REVIEW_REQUIRED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Claim in status {claim.status} cannot be rejected",
+        )
+
+    result = await update_claim_status(claim_id, ClaimStatus.DENIED, human_review_flag=False, human_review_reason=rejection.notes)
+    await save_human_feedback(claim_id, rejection.approved_by, "REJECTED", rejection.notes)
+    logger.info("claim.rejected | claim_id=%s by=%s reason=%s", claim_id, rejection.approved_by, rejection.notes)
+    return APIResponse(success=True, data=result, message="Claim rejected → DENIED")

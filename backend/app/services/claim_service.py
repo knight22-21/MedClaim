@@ -153,3 +153,20 @@ async def ingest_eob(claim_id: str, denial_reason_code: str, denial_reason_desc:
 
     logger.info("claim.eob_ingested | claim_id=%s denial_code=%s", claim_id, denial_reason_code)
     return _row_to_response(result.data[0])
+
+
+async def save_human_feedback(claim_id: str, specialist_id: str, action: str, notes: str) -> None:
+    """Save HITL specialist feedback for few-shot learning."""
+    client = get_supabase_client()
+    payload = {
+        "claim_id": claim_id,
+        "specialist_id": specialist_id,
+        "action": action,
+        "notes": notes
+    }
+    result = client.table("human_feedback").insert(payload).execute()
+    if not result.data:
+        logger.error("claim.feedback.failed | claim_id=%s", claim_id)
+    else:
+        logger.info("claim.feedback.saved | claim_id=%s action=%s", claim_id, action)
+
