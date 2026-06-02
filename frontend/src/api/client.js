@@ -11,9 +11,9 @@ export const apiClient = axios.create({
 
 export const api = {
   // Claims
-  getClaims: () => apiClient.get('/claims/'),
+  getClaims: () => apiClient.get('/claims'),
   getClaim: (id) => apiClient.get(`/claims/${id}`),
-  ingestClaim: (claimData) => apiClient.post('/claims/', claimData),
+  ingestClaim: (claimData) => apiClient.post('/claims', claimData),
   
   // Analytics
   getSummary: () => apiClient.get('/analytics/summary'),
