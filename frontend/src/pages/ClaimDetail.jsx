@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '../api/client';
-import { ArrowLeft, CheckCircle, AlertTriangle, Play, FileText, User } from 'lucide-react';
+import { api, pollJobUntilDone } from '../api/client';
+import { ArrowLeft, CheckCircle, AlertTriangle, Play, FileText, User, Loader } from 'lucide-react';
 
 export default function ClaimDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [claim, setClaim] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pipelineStatus, setPipelineStatus] = useState(null); // null | "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED"
 
   const fetchClaim = async () => {
     try {
@@ -26,11 +27,20 @@ export default function ClaimDetail() {
 
   const handleRunPipeline = async () => {
     try {
-      await api.startPipeline(id);
-      alert("Pipeline started in background");
-      fetchClaim(); // Refresh
+      const res = await api.startPipeline(id);
+      const jobId = res.data.data.job_id;
+      setPipelineStatus("QUEUED");
+
+      const finalJob = await pollJobUntilDone(jobId, (job) => {
+        setPipelineStatus(job.status);
+      });
+
+      // Refresh claim data to show new audit/prediction results
+      await fetchClaim();
+      
+      setTimeout(() => setPipelineStatus(null), 3000);
     } catch (err) {
-      alert("Error starting pipeline");
+      setPipelineStatus("FAILED");
     }
   };
 
@@ -48,15 +58,27 @@ export default function ClaimDetail() {
           <h1 style={{ marginBottom: 0 }}>Claim Details</h1>
           <p style={{ color: 'var(--text-secondary)' }}>ID: {claim.id}</p>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '12px' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '12px', alignItems: 'center' }}>
           <span className="badge" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--primary)' }}>
             {claim.status.replace(/_/g, ' ')}
           </span>
-          {claim.status === 'RECEIVED' && (
+          {pipelineStatus ? (
+            <span className="badge flex items-center gap-2" style={{
+              background: pipelineStatus === 'FAILED' ? 'rgba(239, 68, 68, 0.1)' : 
+                          pipelineStatus === 'COMPLETED' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+              color: pipelineStatus === 'FAILED' ? 'var(--danger)' : 
+                     pipelineStatus === 'COMPLETED' ? 'var(--success)' : 'var(--primary)'
+            }}>
+              {pipelineStatus !== 'COMPLETED' && pipelineStatus !== 'FAILED' && (
+                <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} />
+              )}
+              Pipeline: {pipelineStatus}
+            </span>
+          ) : claim.status === 'RECEIVED' ? (
             <button className="btn btn-primary" onClick={handleRunPipeline}>
               <Play size={16} /> Run Pipeline
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 

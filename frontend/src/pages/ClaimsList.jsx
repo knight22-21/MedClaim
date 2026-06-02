@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../api/client';
-import { Search, Filter, ChevronRight, Play, Plus } from 'lucide-react';
+import { api, pollJobUntilDone } from '../api/client';
+import { Search, Filter, ChevronRight, Play, Plus, Loader } from 'lucide-react';
 
 export default function ClaimsList() {
   const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [processingClaims, setProcessingClaims] = useState({}); // { claimId: "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED" }
   const navigate = useNavigate();
 
   const fetchClaims = async () => {
@@ -26,9 +27,30 @@ export default function ClaimsList() {
   const handleRunPipeline = async (id, e) => {
     e.stopPropagation();
     try {
-      await api.startPipeline(id);
-      alert("Pipeline started in background");
-      fetchClaims();
+      const res = await api.startPipeline(id);
+      const jobId = res.data.data.job_id;
+
+      // Track processing status inline
+      setProcessingClaims(prev => ({ ...prev, [id]: "QUEUED" }));
+
+      // Poll in background
+      pollJobUntilDone(jobId, (job) => {
+        setProcessingClaims(prev => ({ ...prev, [id]: job.status }));
+      }).then(() => {
+        // Pipeline finished — refresh the claims list
+        fetchClaims();
+        // Clear the processing state after a brief delay so user sees COMPLETED
+        setTimeout(() => {
+          setProcessingClaims(prev => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
+        }, 2000);
+      }).catch(() => {
+        setProcessingClaims(prev => ({ ...prev, [id]: "FAILED" }));
+      });
+
     } catch (err) {
       alert("Error starting pipeline");
     }
@@ -127,12 +149,22 @@ export default function ClaimsList() {
                       </span>
                     </td>
                     <td style={{ padding: '16px 24px' }}>
-                      <div className="flex gap-2">
-                        {claim.status === 'RECEIVED' && (
+                      <div className="flex gap-2 items-center">
+                        {processingClaims[claim.id] ? (
+                          <span className="badge flex items-center gap-2" style={{ 
+                            background: processingClaims[claim.id] === 'FAILED' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)', 
+                            color: processingClaims[claim.id] === 'FAILED' ? 'var(--danger)' : 'var(--primary)' 
+                          }}>
+                            {processingClaims[claim.id] !== 'COMPLETED' && processingClaims[claim.id] !== 'FAILED' && (
+                              <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                            )}
+                            {processingClaims[claim.id]}
+                          </span>
+                        ) : claim.status === 'RECEIVED' ? (
                           <button className="btn btn-primary" onClick={(e) => handleRunPipeline(claim.id, e)} style={{ padding: '4px 8px' }}>
                             <Play size={14} /> Run
                           </button>
-                        )}
+                        ) : null}
                         <button className="btn btn-glass" style={{ padding: '4px 8px' }}>
                           <ChevronRight size={14} />
                         </button>
