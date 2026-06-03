@@ -76,6 +76,7 @@ async def classify_intent(transcription: str) -> dict[str, Any]:
         system_prompt=system_prompt,
         preferred_provider="groq",
         json_mode=True,
+        tags=["voice_ai", "intent_classification"],
     )
     
     json_data = res.get("json", {})
@@ -170,6 +171,7 @@ async def generate_response(transcription: str, context: str) -> str:
         system_prompt=system_prompt,
         preferred_provider="groq",
         json_mode=False,
+        tags=["voice_ai", "response_generation"],
     )
     return res.get("content", "I'm sorry, I couldn't generate a response.")
 

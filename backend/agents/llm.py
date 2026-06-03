@@ -67,6 +67,8 @@ async def query_llm(
     temperature: float = 0.1,
     max_tokens: int | None = None,
     json_mode: bool = True,
+    tags: list[str] | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Query an LLM provider (Groq or Google Gemini) with automatic fallback.
@@ -108,6 +110,13 @@ async def query_llm(
     else:
         providers_to_try.append("groq")
 
+    run_config = {}
+    if tags or metadata:
+        run_config = {
+            "tags": tags or [],
+            "metadata": metadata or {}
+        }
+
     for provider in providers_to_try:
         try:
             if provider == "groq":
@@ -124,14 +133,14 @@ async def query_llm(
 
                 chat = ChatGroq(
                     api_key=settings.GROQ_API_KEY,
-                    model_name=model_name,
+                    model=model_name,
                     temperature=temperature,
                     max_tokens=max_tokens,
                     model_kwargs=model_kwargs,
                 )
                 
                 # Execute query
-                response = await chat.ainvoke(messages)
+                response = await chat.ainvoke(messages, config=run_config)
                 latency = int((time.time() - start_time) * 1000)
                 
                 # Track metrics
@@ -171,7 +180,7 @@ async def query_llm(
                     max_output_tokens=max_tokens,
                 )
 
-                response = await chat.ainvoke(messages)
+                response = await chat.ainvoke(messages, config=run_config)
                 latency = int((time.time() - start_time) * 1000)
 
                 LLM_CALL_LATENCY.labels(model=model_name, provider="google").observe(latency / 1000.0)

@@ -200,7 +200,15 @@ async def process_claim(claim_id: str) -> dict[str, Any]:
     # 3. Run the graph
     compiled = get_compiled_graph()
     try:
-        final_state = await compiled.ainvoke(initial_state)
+        run_config = {
+            "tags": [initial_state.get("market", "US"), "pipeline_run"],
+            "metadata": {
+                "claim_id": claim_id,
+                "payer_name": initial_state.get("payer_name", ""),
+            },
+            "callbacks": [] # Can attach specific callbacks here if needed
+        }
+        final_state = await compiled.ainvoke(initial_state, config=run_config)
     except Exception as e:
         logger.error("pipeline.failed | claim_id=%s error=%s", claim_id, str(e))
         await update_claim_status(
