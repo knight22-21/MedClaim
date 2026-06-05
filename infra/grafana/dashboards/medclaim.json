@@ -8,29 +8,23 @@
   "panels": [
     {
       "id": 1,
-      "title": "Request Rate (req/s)",
-      "description": "HTTP requests per second by endpoint",
+      "title": "LLM Tokens Consumed",
+      "description": "Total LLM tokens tracked by model and token_type",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "rate(http_requests_total{service=\"medclaim-backend\"}[1m])",
-          "legendFormat": "{{method}} {{handler}}",
+          "expr": "rate(medclaim_llm_tokens_total[5m])",
+          "legendFormat": "{{model}} ({{token_type}})",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 15,
-            "gradientMode": "scheme",
-            "showPoints": "auto",
-            "pointSize": 5
-          },
-          "unit": "reqps"
+          "custom": { "lineWidth": 2, "fillOpacity": 15, "gradientMode": "scheme", "stacking": { "mode": "normal", "group": "A" } },
+          "unit": "short"
         },
         "overrides": []
       },
@@ -41,32 +35,28 @@
     },
     {
       "id": 2,
-      "title": "P95 Latency by Endpoint",
-      "description": "95th percentile response latency per endpoint",
+      "title": "LLM Latency (P95)",
+      "description": "P95 latency of LLM calls by model and provider",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service=\"medclaim-backend\"}[5m]))",
-          "legendFormat": "{{handler}}",
+          "expr": "histogram_quantile(0.95, rate(medclaim_llm_call_duration_seconds_bucket[5m]))",
+          "legendFormat": "{{provider}} {{model}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10,
-            "gradientMode": "scheme"
-          },
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "gradientMode": "scheme" },
           "unit": "s",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
+              { "color": "yellow", "value": 2 },
               { "color": "red", "value": 5 }
             ]
           }
@@ -80,27 +70,23 @@
     },
     {
       "id": 3,
-      "title": "Error Rate by Status Code",
-      "description": "HTTP error responses (4xx/5xx) per second",
+      "title": "Claims Processed (Cumulative)",
+      "description": "Total claims processed by status",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "rate(http_requests_total{status=~\"4..|5..\", service=\"medclaim-backend\"}[1m])",
-          "legendFormat": "{{status}} {{handler}}",
+          "expr": "medclaim_claims_processed_total",
+          "legendFormat": "{{status}} ({{market}})",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "palette-classic" },
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 20,
-            "gradientMode": "scheme"
-          },
-          "unit": "reqps"
+          "custom": { "lineWidth": 2, "fillOpacity": 20, "gradientMode": "scheme" },
+          "unit": "short"
         },
         "overrides": []
       },
@@ -111,48 +97,107 @@
     },
     {
       "id": 4,
-      "title": "Service Health",
-      "description": "Current status of MedClaim backend services",
-      "type": "stat",
+      "title": "Agent Execution Latency (P95)",
+      "description": "P95 execution time of LangGraph Agents",
+      "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "up{job=\"medclaim-api\"}",
-          "legendFormat": "Backend API",
+          "expr": "histogram_quantile(0.95, rate(medclaim_agent_duration_seconds_bucket[5m]))",
+          "legendFormat": "{{agent_name}} ({{market}})",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "mappings": [
-            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
-          ],
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 15, "gradientMode": "scheme" },
+          "unit": "s",
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 30 }
             ]
           }
         },
         "overrides": []
       },
       "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Agent Confidence Scores",
+      "description": "Average Agent Confidence Score",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "sum(rate(medclaim_agent_confidence_score_sum[5m])) / sum(rate(medclaim_agent_confidence_score_count[5m]))",
+          "legendFormat": "{{agent_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.7 },
+              { "color": "green", "value": 0.85 }
+            ]
+          }
+        }
+      },
+      "options": {
         "reduceOptions": { "calcs": ["lastNotNull"] },
         "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "none"
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 6,
+      "title": "RAG Top Similarity Score",
+      "description": "Cosine similarity of the top retrieved RAG document",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(medclaim_rag_top_similarity_score_bucket[5m]))",
+          "legendFormat": "{{collection}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 15, "gradientMode": "scheme" },
+          "unit": "none"
+        }
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" }
       }
     }
   ],
   "schemaVersion": 39,
-  "tags": ["medclaim", "llmops"],
+  "tags": ["medclaim", "llmops", "agents"],
   "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "MedClaim — API Observability",
+  "title": "MedClaim — LLMOps & Agent Observability",
   "uid": "medclaim-api-dashboard",
-  "version": 1
+  "version": 2
 }
