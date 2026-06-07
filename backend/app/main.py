@@ -17,7 +17,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from backend.app.config import settings
 from backend.app.models.responses import APIResponse, HealthResponse, HealthService
-from backend.app.routers import agents, analytics, claims, voice
+from backend.app.routers import agents, analytics, claims, voice, feedback
 from backend.app.services.fhir_client import FHIRClient
 from backend.db.client import get_supabase_client
 from backend.llmops.logging import configure_logging
@@ -83,6 +83,7 @@ app.include_router(claims.router)
 app.include_router(agents.router)
 app.include_router(voice.router)
 app.include_router(analytics.router)
+app.include_router(feedback.router)
 
 
 @app.get("/health", response_model=APIResponse[HealthResponse], tags=["System"])

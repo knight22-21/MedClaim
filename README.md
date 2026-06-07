@@ -13,7 +13,7 @@ MedClaim compresses what currently takes a billing specialist 2–4 hours per cl
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        Interface Layer                              │
-│   Next.js 14 Dashboard  │  Voice AI (Whisper + Coqui)  │  REST API │
+│   React Vite Dashboard  │  Voice AI (Whisper + Coqui)  │  REST API │
 ├─────────────────────────────────────────────────────────────────────┤
 │                   FastAPI Backend (Render)                          │
 ├─────────────────────────────────────────────────────────────────────┤
@@ -50,7 +50,7 @@ MedClaim/
 │   ├── llmops/           # Observability (LangSmith, Prometheus, structlog)
 │   ├── prompts/          # Versioned Jinja2 prompt templates
 │   └── tests/            # Pytest test suite
-├── frontend/             # Next.js 14 billing dashboard
+├── frontend/             # React Vite billing dashboard
 ├── data/                 # Fixtures and ingestion scripts
 ├── infra/                # Docker Compose, Prometheus, Grafana configs
 └── .github/workflows/    # CI/CD pipeline
@@ -63,10 +63,10 @@ MedClaim/
 | **LLM** | Groq (Llama 3.1 70B) + Gemini 1.5 Flash | Agent reasoning + long-context |
 | **Orchestration** | LangGraph | Multi-agent state machine |
 | **RAG** | Qdrant Cloud + Ollama (nomic-embed-text) | 4-collection knowledge base |
-| **Backend** | FastAPI + Celery | REST API + background tasks |
+| **Backend** | FastAPI | REST API + async background tasks |
 | **Database** | Supabase PostgreSQL | Claim state persistence |
-| **Cache/Queue** | Upstash Redis | Rate limiting + task queue |
-| **Frontend** | Next.js 14 + ShadCN UI | Billing staff dashboard |
+| **Cache/Queue** | Upstash Redis (Optional) | Rate limiting |
+| **Frontend** | React (Vite) + Tailwind CSS | Billing staff dashboard |
 | **Voice** | Whisper + Coqui XTTS-v2 | Speech interface |
 | **Observability** | LangSmith + Prometheus + Grafana | Full LLMOps stack |
 | **Documents** | WeasyPrint + Jinja2 | PDF appeal letter generation |
@@ -124,6 +124,16 @@ pytest backend/tests/ -v
 | HAPI FHIR | http://localhost:8080/fhir/metadata |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3001 (admin/medclaim) |
+
+## 🎥 Demo Scenario
+
+To showcase the full capability of MedClaim:
+1. Run the `generate_claims.py` script to seed Qdrant with history.
+2. Submit a synthetic claim with known coding errors via the Dashboard.
+3. Watch the claim transition through `QUEUED` -> `RUNNING` -> `HUMAN_REVIEW_REQUIRED`.
+4. Review the auto-generated Code Audit report and its confidence scores.
+5. Approve corrections and watch the Denial Risk Score drop.
+6. Trigger the Voice AI from the dashboard to ask: "What is the status of my claim?"
 
 ## 📜 License
 

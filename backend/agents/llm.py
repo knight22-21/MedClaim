@@ -12,6 +12,7 @@ import json
 import logging
 import time
 from typing import Any
+import os
 
 import structlog
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
@@ -21,8 +22,74 @@ from langchain_groq import ChatGroq
 from backend.app.config import settings
 from backend.llmops.metrics import LLM_CALL_LATENCY, LLM_TOKENS
 
+from backend.app.config import settings
+from backend.llmops.metrics import LLM_CALL_LATENCY, LLM_TOKENS
+import redis.asyncio as redis_async
+
 # Setup structured logger
 logger = structlog.get_logger("medclaim.llm")
+
+class GroqRateLimiter:
+    """
+    Redis-backed rolling window rate limiter to prevent Groq 429 errors.
+    Tracks tokens consumed in the last 60 seconds.
+    """
+    def __init__(self, limit: int = 5400, window_sec: int = 60):
+        self.limit = limit
+        self.window_sec = window_sec
+        # Initialize redis client safely if url is provided
+        try:
+            url = settings.UPSTASH_REDIS_URL or os.getenv("REDIS_URL")
+            if url and url.startswith("redis"):
+                self.redis = redis_async.from_url(url, decode_responses=True)
+            else:
+                self.redis = None
+                logger.warning("llm.rate_limiter.no_redis", reason="No valid redis URL found. Using in-memory fallback is not implemented, rate limits are unmanaged.")
+        except Exception as e:
+            self.redis = None
+            logger.warning("llm.rate_limiter.init_failed", error=str(e))
+
+    async def check_and_add(self, estimated_tokens: int) -> tuple[bool, int]:
+        """
+        Check if adding estimated_tokens exceeds the limit.
+        If it does not, add the tokens to the sorted set.
+        Returns (is_allowed, current_usage).
+        """
+        if not self.redis:
+            return True, 0
+            
+        now_ms = int(time.time() * 1000)
+        window_start_ms = now_ms - (self.window_sec * 1000)
+        key = "groq_token_usage_window"
+        
+        try:
+            # 1. Remove old entries outside the window
+            await self.redis.zremrangebyscore(key, 0, window_start_ms)
+            
+            # 2. Get current token sum (zrange returning values, we sum them)
+            # In Redis, zrange with WITHSCORES returns (value, score). 
+            # Our value needs to be unique, so we store "timestamp_random:tokens"
+            entries = await self.redis.zrange(key, 0, -1)
+            current_usage = sum([int(entry.split(":")[1]) for entry in entries if ":" in entry])
+            
+            if current_usage + estimated_tokens > self.limit:
+                return False, current_usage
+                
+            # 3. Add new token prediction
+            import uuid
+            unique_val = f"{now_ms}_{uuid.uuid4().hex[:6]}:{estimated_tokens}"
+            await self.redis.zadd(key, {unique_val: now_ms})
+            
+            # 4. Set TTL on the key to clean up automatically if idle
+            await self.redis.expire(key, self.window_sec)
+            
+            return True, current_usage + estimated_tokens
+        except Exception as e:
+            logger.error("llm.rate_limiter.check_failed", error=str(e))
+            return True, 0  # Fail open
+
+# Global instance
+rate_limiter = GroqRateLimiter()
 
 
 def _extract_usage(response: Any, model: str) -> dict[str, int]:
@@ -123,8 +190,15 @@ async def query_llm(
                 if not settings.GROQ_API_KEY:
                     raise ValueError("GROQ_API_KEY is not configured")
                 
+                # Enforce Rate Limiting before calling Groq
+                estimated_cost = (max_tokens or 1000) + int(len(prompt) / 4)
+                allowed, current_usage = await rate_limiter.check_and_add(estimated_cost)
+                if not allowed:
+                    logger.warning("llm.rate_limit_exceeded", provider="groq", usage=current_usage, limit=rate_limiter.limit)
+                    raise RuntimeError("Groq RateLimitApproachingException: Circuit breaker open. Too many tokens used in last 60s.")
+                
                 model_name = "llama-3.3-70b-versatile"
-                logger.debug("llm.invoking", provider="groq", model=model_name)
+                logger.debug("llm.invoking", provider="groq", model=model_name, usage=current_usage)
                 
                 # Setup model
                 model_kwargs = {}
