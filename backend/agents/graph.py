@@ -60,7 +60,12 @@ from backend.agents.nodes import (
 )
 from backend.agents.state import ClaimState
 from backend.agents.supervisor import route_claim
-from backend.app.services.claim_service import get_claim, update_claim_status
+from backend.app.services.claim_service import (
+    get_claim,
+    update_claim_status,
+    save_audit_results,
+    save_denial_prediction,
+)
 from backend.app.models.claim import ClaimStatus
 
 logger = logging.getLogger("medclaim.agents.graph")
@@ -232,6 +237,49 @@ async def process_claim(claim_id: str) -> dict[str, Any]:
         human_review_flag=final_state.get("human_review_flag", False),
         human_review_reason=final_state.get("human_review_reason"),
     )
+
+    # Save audit results if available
+    audit_findings = final_state.get("audit_findings")
+    if audit_findings is not None:
+        # Find the code_audit LLM call metadata
+        audit_llm_call = None
+        for call in final_state.get("llm_calls", []):
+            if call.get("agent") == "code_audit":
+                audit_llm_call = call
+                break
+        
+        await save_audit_results(
+            claim_id=claim_id,
+            findings=audit_findings,
+            confidence=final_state.get("audit_confidence", 0.0),
+            summary=final_state.get("audit_summary", ""),
+            llm_model=audit_llm_call.get("model", "unknown") if audit_llm_call else "unknown",
+            prompt_tokens=audit_llm_call.get("prompt_tokens", 0) if audit_llm_call else 0,
+            completion_tokens=audit_llm_call.get("completion_tokens", 0) if audit_llm_call else 0,
+            latency_ms=audit_llm_call.get("latency_ms", 0) if audit_llm_call else 0,
+        )
+
+    # Save denial prediction if available
+    denial_risk_score = final_state.get("denial_risk_score")
+    if denial_risk_score is not None:
+        # Find the denial_prediction LLM call metadata
+        denial_llm_call = None
+        for call in final_state.get("llm_calls", []):
+            if call.get("agent") == "denial_prediction":
+                denial_llm_call = call
+                break
+        
+        await save_denial_prediction(
+            claim_id=claim_id,
+            risk_score=denial_risk_score,
+            risk_factors=final_state.get("risk_factors", []),
+            recommended_action=final_state.get("recommended_action", "SUBMIT_AS_IS"),
+            confidence=0.95,  # Default confidence for denial prediction
+            llm_model=denial_llm_call.get("model", "unknown") if denial_llm_call else "unknown",
+            prompt_tokens=denial_llm_call.get("prompt_tokens", 0) if denial_llm_call else 0,
+            completion_tokens=denial_llm_call.get("completion_tokens", 0) if denial_llm_call else 0,
+            latency_ms=denial_llm_call.get("latency_ms", 0) if denial_llm_call else 0,
+        )
 
     logger.info(
         "pipeline.complete | claim_id=%s final_status=%s total_tokens=%d",

@@ -140,6 +140,10 @@ class ClaimResponse(BaseModel):
     human_review_reason: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    audit_findings: list[dict[str, Any]] | None = None
+    audit_confidence: float | None = None
+    denial_risk_score: int | None = None
+    risk_factors: list[dict[str, Any]] | None = None
 
 
 class ClaimListResponse(BaseModel):
