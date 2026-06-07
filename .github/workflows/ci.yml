@@ -54,7 +54,7 @@ jobs:
     env:
       APP_ENV: testing
       MARKET: US
-      LANGCHAIN_TRACING_V2: "false"
+      LANGSMITH_TRACING: "false"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

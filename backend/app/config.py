@@ -35,9 +35,10 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str = ""
 
     # --- LLMOps (LangSmith) ---
-    LANGCHAIN_API_KEY: str = ""
-    LANGCHAIN_TRACING_V2: bool = True
-    LANGCHAIN_PROJECT: str = "medclaim-dev"
+    LANGSMITH_API_KEY: str = ""
+    LANGSMITH_TRACING: bool = True
+    LANGSMITH_PROJECT: str = "medclaim-dev"
+    LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
 
     # --- Task Queue (Upstash Redis) ---
     UPSTASH_REDIS_URL: str = ""

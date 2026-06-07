@@ -116,7 +116,7 @@ async def target_function(inputs: dict) -> dict:
 
 async def run_evaluation():
     """Run the LangSmith evaluation suite."""
-    if not os.getenv("LANGCHAIN_API_KEY"):
+    if not os.getenv("LANGSMITH_API_KEY"):
         logger.warning("evaluate.skip.no_api_key")
         return
         

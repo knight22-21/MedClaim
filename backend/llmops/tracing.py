@@ -16,8 +16,16 @@ logger = logging.getLogger("medclaim.llmops.tracing")
 
 def get_langsmith_client() -> Client | None:
     """Get the LangSmith client if configured."""
-    if os.getenv("LANGCHAIN_TRACING_V2") == "true" and os.getenv("LANGCHAIN_API_KEY"):
-        return Client()
+    api_key = os.getenv("LANGSMITH_API_KEY")
+    # Check both string "true" and environment variable existence
+    tracing_enabled = os.getenv("LANGSMITH_TRACING", "").lower() in ("true", "1", "yes")
+    
+    if api_key and tracing_enabled:
+        try:
+            return Client(api_key=api_key)
+        except Exception as e:
+            logger.error("langsmith.client.init_failed", error=str(e))
+            return None
     return None
 
 def capture_feedback(run_id: str, key: str, score: float, comment: str = "") -> None:

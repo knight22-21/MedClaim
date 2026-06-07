@@ -21,6 +21,8 @@ from backend.app.routers import agents, analytics, claims, voice, feedback
 from backend.app.services.fhir_client import FHIRClient
 from backend.db.client import get_supabase_client
 from backend.llmops.logging import configure_logging
+from dotenv import load_dotenv
+load_dotenv()
 
 logger = structlog.get_logger("medclaim.app")
 
