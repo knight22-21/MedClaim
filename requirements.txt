@@ -56,3 +56,4 @@ pyyaml>=6.0.2
 
 # --- Additional Dependencies ---
 gtts
+email-validator
