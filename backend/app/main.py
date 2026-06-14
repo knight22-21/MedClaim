@@ -11,13 +11,14 @@ import logging
 from contextlib import asynccontextmanager
 
 import structlog
-from fastapi import FastAPI
+from fastapi import FastAPI, Security, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from backend.app.config import settings
 from backend.app.models.responses import APIResponse, HealthResponse, HealthService
-from backend.app.routers import agents, analytics, claims, voice, feedback
+from backend.app.routers import agents, analytics, claims, voice, feedback, auth, admin, workflows, comments, public
 from backend.app.services.fhir_client import FHIRClient
 from backend.db.client import get_supabase_client
 from backend.llmops.logging import configure_logging
@@ -25,6 +26,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logger = structlog.get_logger("medclaim.app")
+
+# Security for Swagger UI
+security = HTTPBasic()
+
+
+def get_current_username(credentials: HTTPBasicCredentials = Security(security)):
+    """Validate credentials for Swagger UI access."""
+    correct_username = settings.SWAGGER_USERNAME
+    correct_password = settings.SWAGGER_PASSWORD
+    
+    if credentials.username != correct_username or credentials.password != correct_password:
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
 
 
 @asynccontextmanager
@@ -54,7 +72,14 @@ app = FastAPI(
     description="Autonomous multi-agent insurance claim processor",
     lifespan=lifespan,
     docs_url="/docs",
+    docs_oauth2_redirect_url="/docs/oauth2-redirect",
     redoc_url=None,
+    openapi_url="/openapi.json",
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+        "defaultModelsExpandDepth": 1,
+        "displayRequestDuration": True,
+    },
 )
 
 # Configure CORS
@@ -86,6 +111,11 @@ app.include_router(agents.router)
 app.include_router(voice.router)
 app.include_router(analytics.router)
 app.include_router(feedback.router)
+app.include_router(auth.router)
+app.include_router(admin.router)
+app.include_router(workflows.router)
+app.include_router(comments.router)
+app.include_router(public.router)
 
 
 @app.get("/health", response_model=APIResponse[HealthResponse], tags=["System"])
