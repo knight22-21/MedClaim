@@ -8,12 +8,12 @@ CORS, and router registration.
 from __future__ import annotations
 
 import logging
+import base64
 from contextlib import asynccontextmanager
 
 import structlog
-from fastapi import FastAPI, Security, HTTPException
+from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from backend.app.config import settings
@@ -27,22 +27,38 @@ load_dotenv()
 
 logger = structlog.get_logger("medclaim.app")
 
-# Security for Swagger UI
-security = HTTPBasic()
 
-
-def get_current_username(credentials: HTTPBasicCredentials = Security(security)):
-    """Validate credentials for Swagger UI access."""
-    correct_username = settings.SWAGGER_USERNAME
-    correct_password = settings.SWAGGER_PASSWORD
+async def swagger_auth_middleware(request: Request, call_next):
+    """Middleware to protect Swagger UI with HTTP Basic Authentication."""
+    if request.url.path in ["/docs", "/docs/oauth2-redirect", "/openapi.json"]:
+        auth_header = request.headers.get("authorization")
+        
+        if not auth_header or not auth_header.startswith("Basic "):
+            return Response(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                headers={"WWW-Authenticate": "Basic"},
+                content="Authentication required"
+            )
+        
+        try:
+            encoded_credentials = auth_header.split(" ")[1]
+            decoded_credentials = base64.b64decode(encoded_credentials).decode("utf-8")
+            username, password = decoded_credentials.split(":")
+            
+            if username != settings.SWAGGER_USERNAME or password != settings.SWAGGER_PASSWORD:
+                return Response(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    headers={"WWW-Authenticate": "Basic"},
+                    content="Invalid credentials"
+                )
+        except Exception:
+            return Response(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                headers={"WWW-Authenticate": "Basic"},
+                content="Invalid authentication"
+            )
     
-    if credentials.username != correct_username or credentials.password != correct_password:
-        raise HTTPException(
-            status_code=401,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Basic"},
-        )
-    return credentials.username
+    return await call_next(request)
 
 
 @asynccontextmanager
@@ -90,6 +106,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add Swagger UI authentication middleware
+app.middleware("http")(swagger_auth_middleware)
 
 # Configure Prometheus Instrumentator
 # Change this parameter in main.py to pull from your settings class
