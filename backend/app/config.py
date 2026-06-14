@@ -60,15 +60,31 @@ class Settings(BaseSettings):
     
     PROJECT_NAME: str = "MedClaim"
     VERSION: str = "1.0.0"
-    CORS_ORIGINS: list[str] = [
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://admin.medclaim.ai",
-        "https://agent.medclaim.ai",
-    ]
+    
+    # CORS Origins - can be overridden by FRONTEND_URL env var
+    FRONTEND_URL: str = "http://localhost:5173"
+    
+    @property
+    def CORS_ORIGINS(self) -> list[str]:
+        """Get CORS origins from environment or defaults."""
+        origins = [
+            "http://localhost:5173",
+            "http://localhost:3000",
+            self.FRONTEND_URL,
+        ]
+        # Add production frontend URL if set
+        if self.APP_ENV == "production" and self.FRONTEND_URL:
+            if self.FRONTEND_URL not in origins:
+                origins.append(self.FRONTEND_URL)
+        return origins
+    
     CORS_HEADERS: list[str] = ["Content-Type", "Authorization", "Accept"]
     CORS_METHODS: list[str] = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     ENABLE_METRICS: bool = True
+    
+    # Swagger UI Authentication
+    SWAGGER_USERNAME: str = "admin"
+    SWAGGER_PASSWORD: str = "medclaim123"
 
 
 # Singleton settings instance
