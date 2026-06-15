@@ -112,17 +112,17 @@ app.middleware("http")(swagger_auth_middleware)
 
 # Configure Prometheus Instrumentator
 # Change this parameter in main.py to pull from your settings class
-Instrumentator(
-    should_group_status_codes=False,
-    should_ignore_untemplated=True,
-    should_respect_env_var=False,  # Set to False so it doesn't bypass your control logic
-    should_instrument_requests_inprogress=True,
-    excluded_handlers=["/metrics", "/health"],
-).instrument(app).expose(
-    app, 
-    include_in_schema=False, 
-    tags=["Observability"]
-) if getattr(settings, "ENABLE_METRICS", True) else None
+# Instrumentator(
+#     should_group_status_codes=False,
+#     should_ignore_untemplated=True,
+#     should_respect_env_var=False,  # Set to False so it doesn't bypass your control logic
+#     should_instrument_requests_inprogress=True,
+#     excluded_handlers=["/metrics", "/health"],
+# ).instrument(app).expose(
+#     app, 
+#     include_in_schema=False, 
+#     tags=["Observability"]
+# ) if getattr(settings, "ENABLE_METRICS", True) else None
 
 # Register Routers
 app.include_router(claims.router)
