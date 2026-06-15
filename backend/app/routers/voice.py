@@ -22,9 +22,6 @@ logger = logging.getLogger("medclaim.routers.voice")
 router = APIRouter(prefix="/voice", tags=["Voice AI"])
 
 
-
-
-
 class TextQueryRequest(BaseModel):
     query: str
 

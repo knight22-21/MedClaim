@@ -73,11 +73,7 @@ class Settings(BaseSettings):
             self.FRONTEND_URL,
         ]
         # Add production frontend URL if set
-        if (
-            self.APP_ENV == "production"
-            and self.FRONTEND_URL
-            and self.FRONTEND_URL not in origins
-        ):
+        if self.APP_ENV == "production" and self.FRONTEND_URL and self.FRONTEND_URL not in origins:
             origins.append(self.FRONTEND_URL)
         return origins
 
