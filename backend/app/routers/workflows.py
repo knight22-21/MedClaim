@@ -6,7 +6,6 @@ Handles workflow configuration and claim approval endpoints.
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 import structlog
@@ -17,8 +16,8 @@ from backend.app.middleware.auth import require_admin, require_billing_specialis
 from backend.app.models.responses import APIResponse
 from backend.app.services.approval_service import (
     add_workflow_step,
-    delete_workflow,
     create_workflow,
+    delete_workflow,
     delete_workflow_step,
     get_claim_approval,
     get_workflow,
@@ -75,7 +74,7 @@ async def get_all_workflows(
     is_active: bool | None = None,
     limit: int = 100,
     offset: int = 0,
-    current_user: dict[str, Any] = Depends(require_admin)
+    current_user: dict[str, Any] = Depends(require_admin),
 ) -> APIResponse[list[dict[str, Any]]]:
     """List all workflows (admin only)."""
     try:
@@ -84,53 +83,43 @@ async def get_all_workflows(
     except Exception as e:
         logger.error("workflows.list_failed | error=%s", str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to list workflows"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to list workflows"
         )
 
 
 @router.get("/{workflow_id}", response_model=APIResponse[dict[str, Any]])
 async def get_workflow_by_id(
-    workflow_id: str,
-    current_user: dict[str, Any] = Depends(require_admin)
+    workflow_id: str, current_user: dict[str, Any] = Depends(require_admin)
 ) -> APIResponse[dict[str, Any]]:
     """Get workflow by ID with steps (admin only)."""
     try:
         workflow = await get_workflow(workflow_id)
         if not workflow:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Workflow not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
         return APIResponse(success=True, data=workflow)
     except HTTPException:
         raise
     except Exception as e:
         logger.error("workflows.get_failed | workflow_id=%s error=%s", workflow_id, str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get workflow"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to get workflow"
         )
 
 
 @router.post("", response_model=APIResponse[dict[str, Any]])
 async def create_new_workflow(
-    request: CreateWorkflowRequest,
-    current_user: dict[str, Any] = Depends(require_admin)
+    request: CreateWorkflowRequest, current_user: dict[str, Any] = Depends(require_admin)
 ) -> APIResponse[dict[str, Any]]:
     """Create a new workflow (admin only)."""
     try:
         workflow = await create_workflow(
-            name=request.name,
-            description=request.description,
-            created_by=current_user["id"]
+            name=request.name, description=request.description, created_by=current_user["id"]
         )
         return APIResponse(success=True, data=workflow)
     except Exception as e:
         logger.error("workflows.create_failed | name=%s error=%s", request.name, str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create workflow"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create workflow"
         )
 
 
@@ -138,7 +127,7 @@ async def create_new_workflow(
 async def update_workflow_by_id(
     workflow_id: str,
     request: UpdateWorkflowRequest,
-    current_user: dict[str, Any] = Depends(require_admin)
+    current_user: dict[str, Any] = Depends(require_admin),
 ) -> APIResponse[dict[str, Any]]:
     """Update workflow (admin only)."""
     try:
@@ -146,21 +135,19 @@ async def update_workflow_by_id(
             workflow_id=workflow_id,
             name=request.name,
             description=request.description,
-            is_active=request.is_active
+            is_active=request.is_active,
         )
         return APIResponse(success=True, data=workflow)
     except Exception as e:
         logger.error("workflows.update_failed | workflow_id=%s error=%s", workflow_id, str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update workflow"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update workflow"
         )
 
 
 @router.delete("/{workflow_id}")
 async def delete_workflow_by_id(
-    workflow_id: str,
-    current_user: dict[str, Any] = Depends(require_admin)
+    workflow_id: str, current_user: dict[str, Any] = Depends(require_admin)
 ) -> APIResponse[dict]:
     """Delete workflow (admin only)."""
     try:
@@ -169,8 +156,7 @@ async def delete_workflow_by_id(
     except Exception as e:
         logger.error("workflows.delete_failed | workflow_id=%s error=%s", workflow_id, str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete workflow"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete workflow"
         )
 
 
@@ -179,7 +165,7 @@ async def delete_workflow_by_id(
 async def add_step_to_workflow(
     workflow_id: str,
     request: CreateWorkflowStepRequest,
-    current_user: dict[str, Any] = Depends(require_admin)
+    current_user: dict[str, Any] = Depends(require_admin),
 ) -> APIResponse[dict[str, Any]]:
     """Add a step to workflow (admin only)."""
     try:
@@ -188,14 +174,13 @@ async def add_step_to_workflow(
             step_order=request.step_order,
             required_role=request.required_role,
             timeout_hours=request.timeout_hours,
-            escalation_to_role=request.escalation_to_role
+            escalation_to_role=request.escalation_to_role,
         )
         return APIResponse(success=True, data=step)
     except Exception as e:
         logger.error("workflows.step_add_failed | workflow_id=%s error=%s", workflow_id, str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to add workflow step"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to add workflow step"
         )
 
 
@@ -203,7 +188,7 @@ async def add_step_to_workflow(
 async def update_workflow_step_by_id(
     step_id: str,
     request: UpdateWorkflowStepRequest,
-    current_user: dict[str, Any] = Depends(require_admin)
+    current_user: dict[str, Any] = Depends(require_admin),
 ) -> APIResponse[dict[str, Any]]:
     """Update workflow step (admin only)."""
     try:
@@ -212,21 +197,20 @@ async def update_workflow_step_by_id(
             step_order=request.step_order,
             required_role=request.required_role,
             timeout_hours=request.timeout_hours,
-            escalation_to_role=request.escalation_to_role
+            escalation_to_role=request.escalation_to_role,
         )
         return APIResponse(success=True, data=step)
     except Exception as e:
         logger.error("workflows.step_update_failed | step_id=%s error=%s", step_id, str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update workflow step"
+            detail="Failed to update workflow step",
         )
 
 
 @router.delete("/steps/{step_id}")
 async def delete_workflow_step_by_id(
-    step_id: str,
-    current_user: dict[str, Any] = Depends(require_admin)
+    step_id: str, current_user: dict[str, Any] = Depends(require_admin)
 ) -> APIResponse[dict]:
     """Delete workflow step (admin only)."""
     try:
@@ -236,7 +220,7 @@ async def delete_workflow_step_by_id(
         logger.error("workflows.step_delete_failed | step_id=%s error=%s", step_id, str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete workflow step"
+            detail="Failed to delete workflow step",
         )
 
 
@@ -245,20 +229,17 @@ async def delete_workflow_step_by_id(
 async def initiate_claim_approval_workflow(
     claim_id: str,
     request: InitiateApprovalRequest,
-    current_user: dict[str, Any] = Depends(require_billing_specialist_or_admin)
+    current_user: dict[str, Any] = Depends(require_billing_specialist_or_admin),
 ) -> APIResponse[dict[str, Any]]:
     """Initiate approval workflow for a claim."""
     try:
-        approval = await initiate_claim_approval(
-            claim_id=claim_id,
-            workflow_id=request.workflow_id
-        )
+        approval = await initiate_claim_approval(claim_id=claim_id, workflow_id=request.workflow_id)
         return APIResponse(success=True, data=approval)
     except Exception as e:
         logger.error("workflows.claim_initiate_failed | claim_id=%s error=%s", claim_id, str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to initiate approval workflow"
+            detail="Failed to initiate approval workflow",
         )
 
 
@@ -266,7 +247,7 @@ async def initiate_claim_approval_workflow(
 async def approve_claim_step(
     claim_id: str,
     request: ProcessApprovalRequest,
-    current_user: dict[str, Any] = Depends(require_billing_specialist_or_admin)
+    current_user: dict[str, Any] = Depends(require_billing_specialist_or_admin),
 ) -> APIResponse[dict[str, Any]]:
     """Process approval action for a claim."""
     try:
@@ -274,29 +255,27 @@ async def approve_claim_step(
             claim_id=claim_id,
             approver_id=current_user["id"],
             action=request.action,
-            notes=request.notes
+            notes=request.notes,
         )
         return APIResponse(success=True, data=approval)
     except Exception as e:
         logger.error("workflows.claim_approve_failed | claim_id=%s error=%s", claim_id, str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to process approval action"
+            detail="Failed to process approval action",
         )
 
 
 @router.get("/claims/{claim_id}/status", response_model=APIResponse[dict[str, Any]])
 async def get_claim_approval_status(
-    claim_id: str,
-    current_user: dict[str, Any] = Depends(require_billing_specialist_or_admin)
+    claim_id: str, current_user: dict[str, Any] = Depends(require_billing_specialist_or_admin)
 ) -> APIResponse[dict[str, Any]]:
     """Get approval status for a claim with history."""
     try:
         approval = await get_claim_approval(claim_id)
         if not approval:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No approval found for claim"
+                status_code=status.HTTP_404_NOT_FOUND, detail="No approval found for claim"
             )
         return APIResponse(success=True, data=approval)
     except HTTPException:
@@ -305,5 +284,5 @@ async def get_claim_approval_status(
         logger.error("workflows.claim_status_failed | claim_id=%s error=%s", claim_id, str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get approval status"
+            detail="Failed to get approval status",
         )

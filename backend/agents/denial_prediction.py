@@ -18,17 +18,18 @@ knowledge combined with the audit findings already in state.
 
 from __future__ import annotations
 
-import logging
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
 from backend.agents.llm import query_llm
-from backend.agents.state import ClaimState
 from backend.llmops.metrics import DENIALS_PREDICTED
 from backend.prompts.loader import render_prompt
 from backend.rag.retrievers import retrieve_with_scores
+
+if TYPE_CHECKING:
+    from backend.agents.state import ClaimState
 
 logger = structlog.get_logger("medclaim.agents.denial_prediction")
 
@@ -146,11 +147,13 @@ async def run_denial_prediction(state: ClaimState) -> dict[str, Any]:
         # Normalize risk factors to our expected schema
         normalized_factors = []
         for rf in risk_factors[:5]:  # Cap at top 5
-            normalized_factors.append({
-                "factor": rf.get("factor", "Unknown factor"),
-                "weight": float(rf.get("weight", 0.5)),
-                "description": rf.get("description", ""),
-            })
+            normalized_factors.append(
+                {
+                    "factor": rf.get("factor", "Unknown factor"),
+                    "weight": float(rf.get("weight", 0.5)),
+                    "description": rf.get("description", ""),
+                }
+            )
 
         recommended_action = prediction_json.get("recommended_action", "SUBMIT_AS_IS")
         valid_actions = {"SUBMIT_AS_IS", "CORRECT_AND_RESUBMIT", "ESCALATE_TO_HUMAN"}
@@ -180,7 +183,7 @@ async def run_denial_prediction(state: ClaimState) -> dict[str, Any]:
         retry_count = state.get("retry_count", 0)
 
         if risk_score > 70:
-            retry_count += 1        
+            retry_count += 1
 
         return {
             "denial_risk_score": risk_score,
@@ -192,14 +195,17 @@ async def run_denial_prediction(state: ClaimState) -> dict[str, Any]:
             "total_prompt_tokens": state.get("total_prompt_tokens", 0) + prompt_tokens,
             "total_completion_tokens": state.get("total_completion_tokens", 0) + completion_tokens,
             "total_latency_ms": state.get("total_latency_ms", 0) + latency,
-            "llm_calls": state.get("llm_calls", []) + [{
-                "agent": "denial_prediction",
-                "provider": llm_response.get("provider"),
-                "model": llm_response.get("model"),
-                "latency_ms": latency,
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-            }],
+            "llm_calls": state.get("llm_calls", [])
+            + [
+                {
+                    "agent": "denial_prediction",
+                    "provider": llm_response.get("provider"),
+                    "model": llm_response.get("model"),
+                    "latency_ms": latency,
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                }
+            ],
         }
 
     except Exception as e:
@@ -214,15 +220,17 @@ async def run_denial_prediction(state: ClaimState) -> dict[str, Any]:
         # Fallback: moderate risk to trigger human review rather than auto-submit
         return {
             "denial_risk_score": 55,
-            "risk_factors": [{
-                "factor": "Prediction agent error",
-                "weight": 1.0,
-                "description": f"Agent failed: {str(e)}. Defaulting to moderate risk.",
-            }],
+            "risk_factors": [
+                {
+                    "factor": "Prediction agent error",
+                    "weight": 1.0,
+                    "description": f"Agent failed: {str(e)}. Defaulting to moderate risk.",
+                }
+            ],
             "recommended_action": "ESCALATE_TO_HUMAN",
             "status": "PREDICTION_COMPLETE",
             "current_agent": "denial_prediction",
             "processing_errors": state.get("processing_errors", [])
-                + [f"Denial prediction error: {str(e)}"],
+            + [f"Denial prediction error: {str(e)}"],
             "total_latency_ms": state.get("total_latency_ms", 0) + latency,
         }

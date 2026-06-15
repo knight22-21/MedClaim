@@ -101,15 +101,19 @@ async def _run_pipeline_job(job_id: str, claim_id: str) -> None:
 
     try:
         # Mark as RUNNING
-        await _update_job(job_id, {
-            "status": "RUNNING",
-            "started_at": datetime.utcnow().isoformat(),
-        })
+        await _update_job(
+            job_id,
+            {
+                "status": "RUNNING",
+                "started_at": datetime.utcnow().isoformat(),
+            },
+        )
 
         logger.info("job.running | job_id=%s claim_id=%s", job_id, claim_id)
 
         # Execute the pipeline
         from backend.agents.graph import process_claim
+
         final_state = await process_claim(claim_id)
 
         elapsed_ms = int((time.time() - start_time) * 1000)
@@ -127,30 +131,42 @@ async def _run_pipeline_job(job_id: str, claim_id: str) -> None:
             "llm_calls_count": len(final_state.get("llm_calls", [])),
         }
 
-        await _update_job(job_id, {
-            "status": "COMPLETED",
-            "completed_at": datetime.utcnow().isoformat(),
-            "result": result_summary,
-        })
+        await _update_job(
+            job_id,
+            {
+                "status": "COMPLETED",
+                "completed_at": datetime.utcnow().isoformat(),
+                "result": result_summary,
+            },
+        )
 
         logger.info(
             "job.completed | job_id=%s claim_id=%s status=%s elapsed_ms=%d",
-            job_id, claim_id, final_state.get("status"), elapsed_ms,
+            job_id,
+            claim_id,
+            final_state.get("status"),
+            elapsed_ms,
         )
 
     except Exception as e:
         elapsed_ms = int((time.time() - start_time) * 1000)
         error_msg = str(e)
 
-        await _update_job(job_id, {
-            "status": "FAILED",
-            "completed_at": datetime.utcnow().isoformat(),
-            "error": error_msg,
-        })
+        await _update_job(
+            job_id,
+            {
+                "status": "FAILED",
+                "completed_at": datetime.utcnow().isoformat(),
+                "error": error_msg,
+            },
+        )
 
         logger.error(
             "job.failed | job_id=%s claim_id=%s error=%s elapsed_ms=%d",
-            job_id, claim_id, error_msg, elapsed_ms,
+            job_id,
+            claim_id,
+            error_msg,
+            elapsed_ms,
         )
 
     finally:

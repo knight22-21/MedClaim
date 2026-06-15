@@ -73,6 +73,7 @@ def get_hf_embeddings():
         )
 
     import os
+
     api_key = os.environ.get("HUGGINGFACE_API_KEY", "")
     if not api_key:
         raise ValueError(
@@ -114,10 +115,10 @@ def get_embedding_function(prefer_ollama: bool = True) -> EmbeddingFunction:
                 return embeddings
             else:
                 logger.warning(
-                    f"Ollama returned unexpected dimension (expected={VECTOR_DIMENSION}, actual={len(test_result)})")
+                    f"Ollama returned unexpected dimension (expected={VECTOR_DIMENSION}, actual={len(test_result)})"
+                )
         except Exception as e:
-            logger.warning(
-                f"Ollama unavailable, trying HuggingFace fallback: {e}")
+            logger.warning(f"Ollama unavailable, trying HuggingFace fallback: {e}")
 
     # Fallback to HuggingFace
     try:

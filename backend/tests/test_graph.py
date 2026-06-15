@@ -10,29 +10,32 @@ run without external services.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
 
-from backend.agents.supervisor import (
-    route_claim,
-    NODE_ELIGIBILITY,
-    NODE_CODE_AUDIT,
-    NODE_DENIAL_PREDICTION,
-    NODE_APPEAL_DRAFTING,
-    NODE_HUMAN_REVIEW,
-    NODE_READY,
-    NODE_END,
-)
-from backend.agents.state import ClaimState
 from backend.agents.nodes import (
-    eligibility_check,
+    appeal_drafting,
     code_audit,
     denial_prediction,
-    ready_for_submission,
-    appeal_drafting,
+    eligibility_check,
     human_review,
+    ready_for_submission,
 )
+from backend.agents.supervisor import (
+    NODE_APPEAL_DRAFTING,
+    NODE_CODE_AUDIT,
+    NODE_DENIAL_PREDICTION,
+    NODE_ELIGIBILITY,
+    NODE_END,
+    NODE_HUMAN_REVIEW,
+    NODE_READY,
+    route_claim,
+)
+
+if TYPE_CHECKING:
+    from backend.agents.state import ClaimState
 
 
 def _base_state(**overrides) -> ClaimState:
@@ -68,6 +71,7 @@ def _base_state(**overrides) -> ClaimState:
 # ═══════════════════════════════════════════════════════════════
 # Supervisor Routing Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestSupervisorRouting:
     """Test each branch of the deterministic routing table."""
@@ -143,6 +147,7 @@ class TestSupervisorRouting:
 # Node Function Tests
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestNodeFunctions:
     """Test that node functions return correct state updates."""
 
@@ -204,7 +209,9 @@ class TestNodeFunctions:
         assert result["status"] == "PREDICTION_COMPLETE"
         assert 0 <= result["denial_risk_score"] <= 100
         assert result["recommended_action"] in (
-            "SUBMIT_AS_IS", "CORRECT_AND_RESUBMIT", "ESCALATE_TO_HUMAN"
+            "SUBMIT_AS_IS",
+            "CORRECT_AND_RESUBMIT",
+            "ESCALATE_TO_HUMAN",
         )
 
     def test_ready_for_submission_sets_status(self):
@@ -238,11 +245,13 @@ class TestNodeFunctions:
 # Graph Compilation Test
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestGraphCompilation:
     """Test that the graph compiles and can be invoked."""
 
     def test_graph_compiles(self):
         from backend.agents.graph import build_graph
+
         graph = build_graph()
         compiled = graph.compile()
         assert compiled is not None
@@ -271,8 +280,11 @@ class TestGraphCompilation:
                 "overall_confidence": 0.92,
                 "summary": "Clean audit",
             },
-            "provider": "mock", "model": "mock",
-            "latency_ms": 1, "prompt_tokens": 1, "completion_tokens": 1,
+            "provider": "mock",
+            "model": "mock",
+            "latency_ms": 1,
+            "prompt_tokens": 1,
+            "completion_tokens": 1,
         }
 
         # Mock denial prediction
@@ -284,8 +296,11 @@ class TestGraphCompilation:
                 "risk_factors": [],
                 "recommended_action": "SUBMIT_AS_IS",
             },
-            "provider": "mock", "model": "mock",
-            "latency_ms": 1, "prompt_tokens": 1, "completion_tokens": 1,
+            "provider": "mock",
+            "model": "mock",
+            "latency_ms": 1,
+            "prompt_tokens": 1,
+            "completion_tokens": 1,
         }
 
         compiled = build_graph().compile()

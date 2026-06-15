@@ -11,11 +11,13 @@ with all external calls (LLM, RAG) mocked. Validates:
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
 
-from backend.agents.state import ClaimState
+if TYPE_CHECKING:
+    from backend.agents.state import ClaimState
 
 
 def _base_state(**overrides) -> ClaimState:
@@ -105,14 +107,17 @@ def _mock_llm_prediction_high_risk():
 # Happy Path: RECEIVED → READY_FOR_SUBMISSION
 # ═══════════════════════════════════════════════════════════════
 
+
 @pytest.mark.asyncio
 @patch("backend.agents.denial_prediction.retrieve_with_scores")
 @patch("backend.agents.denial_prediction.query_llm")
 @patch("backend.agents.code_audit.retrieve_with_scores")
 @patch("backend.agents.code_audit.query_llm")
 async def test_e2e_happy_path(
-    mock_audit_llm, mock_audit_rag,
-    mock_pred_llm, mock_pred_rag,
+    mock_audit_llm,
+    mock_audit_rag,
+    mock_pred_llm,
+    mock_pred_rag,
 ):
     """
     Full happy path: eligible → clean audit → low risk → READY_FOR_SUBMISSION.
@@ -155,6 +160,7 @@ async def test_e2e_happy_path(
 # Ineligible Claim: RECEIVED → ELIGIBILITY_FAILED
 # ═══════════════════════════════════════════════════════════════
 
+
 @pytest.mark.asyncio
 async def test_e2e_ineligible_claim():
     """
@@ -179,14 +185,17 @@ async def test_e2e_ineligible_claim():
 # High Risk + Retry Exhaustion: → HUMAN_REVIEW_REQUIRED
 # ═══════════════════════════════════════════════════════════════
 
+
 @pytest.mark.asyncio
 @patch("backend.agents.denial_prediction.retrieve_with_scores")
 @patch("backend.agents.denial_prediction.query_llm")
 @patch("backend.agents.code_audit.retrieve_with_scores")
 @patch("backend.agents.code_audit.query_llm")
 async def test_e2e_high_risk_retry_exhaustion(
-    mock_audit_llm, mock_audit_rag,
-    mock_pred_llm, mock_pred_rag,
+    mock_audit_llm,
+    mock_audit_rag,
+    mock_pred_llm,
+    mock_pred_rag,
 ):
     """
     High risk claim exhausts correction retries → HUMAN_REVIEW_REQUIRED.
@@ -216,6 +225,7 @@ async def test_e2e_high_risk_retry_exhaustion(
 # Audit Low Confidence: → HUMAN_REVIEW_REQUIRED
 # ═══════════════════════════════════════════════════════════════
 
+
 @pytest.mark.asyncio
 @patch("backend.agents.code_audit.retrieve_with_scores")
 @patch("backend.agents.code_audit.query_llm")
@@ -230,15 +240,23 @@ async def test_e2e_low_audit_confidence(mock_audit_llm, mock_audit_rag):
         "content": "ok",
         "json": {
             "findings": [
-                {"code": "99215", "issue_type": "UPCODING", "severity": "HIGH",
-                 "description": "Possible upcoding", "suggested_correction": "99213",
-                 "confidence": 0.6}
+                {
+                    "code": "99215",
+                    "issue_type": "UPCODING",
+                    "severity": "HIGH",
+                    "description": "Possible upcoding",
+                    "suggested_correction": "99213",
+                    "confidence": 0.6,
+                }
             ],
             "overall_confidence": 0.55,
             "summary": "Significant coding concerns.",
         },
-        "provider": "mock", "model": "mock",
-        "latency_ms": 1, "prompt_tokens": 1, "completion_tokens": 1,
+        "provider": "mock",
+        "model": "mock",
+        "latency_ms": 1,
+        "prompt_tokens": 1,
+        "completion_tokens": 1,
     }
 
     compiled = build_graph().compile()

@@ -15,7 +15,6 @@ Requires:
 from __future__ import annotations
 
 import sys
-import uuid
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -23,7 +22,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from backend.db.client import get_supabase_client  # noqa: E402
-
 
 # =============================================================================
 # Synthetic Test Claims — 20 claims across various statuses, payers, facilities
@@ -37,9 +35,7 @@ SEED_CLAIMS = [
         "payer_id": "MCR-001",
         "date_of_service": (date.today() - timedelta(days=2)).isoformat(),
         "facility_type": "outpatient_hospital",
-        "diagnosis_codes": [
-            {"code": "J18.9", "description": "Pneumonia, unspecified organism"}
-        ],
+        "diagnosis_codes": [{"code": "J18.9", "description": "Pneumonia, unspecified organism"}],
         "procedure_codes": [
             {"code": "99213", "description": "Office visit, established patient, low complexity"}
         ],
@@ -55,8 +51,14 @@ SEED_CLAIMS = [
         "date_of_service": (date.today() - timedelta(days=1)).isoformat(),
         "facility_type": "inpatient_hospital",
         "diagnosis_codes": [
-            {"code": "I21.09", "description": "ST elevation MI involving left main coronary artery"},
-            {"code": "I25.10", "description": "Atherosclerotic heart disease of native coronary artery"},
+            {
+                "code": "I21.09",
+                "description": "ST elevation MI involving left main coronary artery",
+            },
+            {
+                "code": "I25.10",
+                "description": "Atherosclerotic heart disease of native coronary artery",
+            },
         ],
         "procedure_codes": [
             {"code": "92920", "description": "Percutaneous transluminal coronary angioplasty"},
@@ -78,7 +80,10 @@ SEED_CLAIMS = [
             {"code": "E11.65", "description": "Type 2 diabetes mellitus with hyperglycemia"}
         ],
         "procedure_codes": [
-            {"code": "99214", "description": "Office visit, established patient, moderate complexity"}
+            {
+                "code": "99214",
+                "description": "Office visit, established patient, moderate complexity",
+            }
         ],
         "billed_amount": 350.00,
         "status": "ELIGIBILITY_VERIFIED",
@@ -94,9 +99,7 @@ SEED_CLAIMS = [
         "diagnosis_codes": [
             {"code": "K80.20", "description": "Calculus of gallbladder without cholecystitis"}
         ],
-        "procedure_codes": [
-            {"code": "47562", "description": "Laparoscopic cholecystectomy"}
-        ],
+        "procedure_codes": [{"code": "47562", "description": "Laparoscopic cholecystectomy"}],
         "billed_amount": 12500.00,
         "status": "ELIGIBILITY_VERIFIED",
         "market": "US",
@@ -112,9 +115,7 @@ SEED_CLAIMS = [
         "diagnosis_codes": [
             {"code": "M17.11", "description": "Primary osteoarthritis, right knee"}
         ],
-        "procedure_codes": [
-            {"code": "27447", "description": "Total knee replacement"}
-        ],
+        "procedure_codes": [{"code": "27447", "description": "Total knee replacement"}],
         "billed_amount": 35000.00,
         "status": "ELIGIBILITY_FAILED",
         "market": "US",
@@ -149,11 +150,12 @@ SEED_CLAIMS = [
         "date_of_service": (date.today() - timedelta(days=6)).isoformat(),
         "facility_type": "physician_office",
         "diagnosis_codes": [
-            {"code": "Z12.11", "description": "Encounter for screening for malignant neoplasm of colon"}
+            {
+                "code": "Z12.11",
+                "description": "Encounter for screening for malignant neoplasm of colon",
+            }
         ],
-        "procedure_codes": [
-            {"code": "45378", "description": "Diagnostic colonoscopy"}
-        ],
+        "procedure_codes": [{"code": "45378", "description": "Diagnostic colonoscopy"}],
         "billed_amount": 2800.00,
         "status": "AUDIT_COMPLETE",
         "market": "US",
@@ -167,7 +169,10 @@ SEED_CLAIMS = [
         "date_of_service": (date.today() - timedelta(days=8)).isoformat(),
         "facility_type": "inpatient_hospital",
         "diagnosis_codes": [
-            {"code": "C34.90", "description": "Malignant neoplasm of unspecified part of bronchus or lung"},
+            {
+                "code": "C34.90",
+                "description": "Malignant neoplasm of unspecified part of bronchus or lung",
+            },
             {"code": "J91.0", "description": "Malignant pleural effusion"},
         ],
         "procedure_codes": [
@@ -225,11 +230,17 @@ SEED_CLAIMS = [
         "date_of_service": (date.today() - timedelta(days=15)).isoformat(),
         "facility_type": "skilled_nursing_facility",
         "diagnosis_codes": [
-            {"code": "S72.001A", "description": "Fracture of unspecified part of neck of right femur"},
+            {
+                "code": "S72.001A",
+                "description": "Fracture of unspecified part of neck of right femur",
+            },
             {"code": "W19.XXXA", "description": "Unspecified fall, initial encounter"},
         ],
         "procedure_codes": [
-            {"code": "27236", "description": "Open treatment of femoral fracture, internal fixation"}
+            {
+                "code": "27236",
+                "description": "Open treatment of femoral fracture, internal fixation",
+            }
         ],
         "billed_amount": 22000.00,
         "status": "SUBMITTED",
@@ -281,7 +292,10 @@ SEED_CLAIMS = [
         "date_of_service": (date.today() - timedelta(days=25)).isoformat(),
         "facility_type": "inpatient_hospital",
         "diagnosis_codes": [
-            {"code": "I63.50", "description": "Cerebral infarction due to unspecified occlusion of cerebral artery"}
+            {
+                "code": "I63.50",
+                "description": "Cerebral infarction due to unspecified occlusion of cerebral artery",
+            }
         ],
         "procedure_codes": [
             {"code": "37184", "description": "Primary percutaneous mechanical thrombectomy"},
@@ -298,9 +312,7 @@ SEED_CLAIMS = [
         "payer_id": "CIG-400",
         "date_of_service": (date.today() - timedelta(days=30)).isoformat(),
         "facility_type": "physician_office",
-        "diagnosis_codes": [
-            {"code": "Z23", "description": "Encounter for immunization"}
-        ],
+        "diagnosis_codes": [{"code": "Z23", "description": "Encounter for immunization"}],
         "procedure_codes": [
             {"code": "90471", "description": "Immunization administration"},
             {"code": "90686", "description": "Influenza vaccine, quadrivalent"},
@@ -316,12 +328,8 @@ SEED_CLAIMS = [
         "payer_id": "UHC-300",
         "date_of_service": (date.today() - timedelta(days=28)).isoformat(),
         "facility_type": "outpatient_hospital",
-        "diagnosis_codes": [
-            {"code": "K35.80", "description": "Unspecified acute appendicitis"}
-        ],
-        "procedure_codes": [
-            {"code": "44970", "description": "Laparoscopic appendectomy"}
-        ],
+        "diagnosis_codes": [{"code": "K35.80", "description": "Unspecified acute appendicitis"}],
+        "procedure_codes": [{"code": "44970", "description": "Laparoscopic appendectomy"}],
         "billed_amount": 15000.00,
         "status": "APPROVED",
         "market": "US",
@@ -334,12 +342,8 @@ SEED_CLAIMS = [
         "payer_id": "STAR-IN-001",
         "date_of_service": (date.today() - timedelta(days=3)).isoformat(),
         "facility_type": "inpatient_hospital",
-        "diagnosis_codes": [
-            {"code": "K35.80", "description": "Unspecified acute appendicitis"}
-        ],
-        "procedure_codes": [
-            {"code": "44970", "description": "Laparoscopic appendectomy"}
-        ],
+        "diagnosis_codes": [{"code": "K35.80", "description": "Unspecified acute appendicitis"}],
+        "procedure_codes": [{"code": "44970", "description": "Laparoscopic appendectomy"}],
         "billed_amount": 85000.00,
         "status": "RECEIVED",
         "market": "INDIA",
@@ -371,9 +375,7 @@ SEED_CLAIMS = [
         "diagnosis_codes": [
             {"code": "I21.09", "description": "ST elevation MI involving left main coronary artery"}
         ],
-        "procedure_codes": [
-            {"code": "HBP-1201", "description": "PTCA with stenting (PM-JAY HBP)"}
-        ],
+        "procedure_codes": [{"code": "HBP-1201", "description": "PTCA with stenting (PM-JAY HBP)"}],
         "billed_amount": 170000.00,
         "status": "AUDIT_COMPLETE",
         "market": "INDIA",
@@ -388,9 +390,7 @@ SEED_CLAIMS = [
         "diagnosis_codes": [
             {"code": "E11.65", "description": "Type 2 diabetes mellitus with hyperglycemia"}
         ],
-        "procedure_codes": [
-            {"code": "99214", "description": "Office visit, moderate complexity"}
-        ],
+        "procedure_codes": [{"code": "99214", "description": "Office visit, moderate complexity"}],
         "billed_amount": 5000.00,
         "status": "DENIED",
         "market": "INDIA",
@@ -418,7 +418,7 @@ def seed_database() -> None:
 
     for i, claim in enumerate(SEED_CLAIMS, 1):
         try:
-            result = client.table("claims").insert(claim).execute()
+            client.table("claims").insert(claim).execute()
             inserted += 1
             status_icon = "✅"
             print(
@@ -438,7 +438,7 @@ def seed_database() -> None:
         print(f"⚠️  {errors} claims failed to insert. Check errors above.")
 
     # Print summary by status
-    print(f"\n📋 Claims by Status:")
+    print("\n📋 Claims by Status:")
     status_counts: dict[str, int] = {}
     for claim in SEED_CLAIMS:
         s = claim["status"]
@@ -447,7 +447,7 @@ def seed_database() -> None:
         print(f"   {status:<25s} : {count}")
 
     # Print summary by market
-    print(f"\n🌍 Claims by Market:")
+    print("\n🌍 Claims by Market:")
     market_counts: dict[str, int] = {}
     for claim in SEED_CLAIMS:
         m = claim["market"]

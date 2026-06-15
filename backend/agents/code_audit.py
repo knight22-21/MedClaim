@@ -14,16 +14,17 @@ Detects issues like:
 
 from __future__ import annotations
 
-import logging
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
-from backend.agents.state import ClaimState
 from backend.agents.llm import query_llm
 from backend.prompts.loader import render_prompt
 from backend.rag.retrievers import retrieve_with_scores
+
+if TYPE_CHECKING:
+    from backend.agents.state import ClaimState
 
 logger = structlog.get_logger("medclaim.agents.code_audit")
 
@@ -37,10 +38,10 @@ def _format_rag_docs(results: list[tuple[Any, float]]) -> str:
     for idx, (doc, score) in enumerate(results, 1):
         content = doc.page_content if hasattr(doc, "page_content") else str(doc)
         meta = doc.metadata if hasattr(doc, "metadata") else {}
-        
+
         source = meta.get("guideline_source", meta.get("payer_name", "Unknown Source"))
         topic = meta.get("clinical_topic", meta.get("policy_type", "General"))
-        
+
         formatted.append(
             f"[{idx}] Source: {source} | Topic/Type: {topic} (Similarity Score: {score:.4f})\n"
             f"Content: {content}\n"
@@ -61,7 +62,7 @@ async def run_code_audit(state: ClaimState) -> dict[str, Any]:
     """
     claim_id = state.get("claim_id", "unknown")
     market = state.get("market", "US")
-    payer_id = state.get("payer_id", "")
+    state.get("payer_id", "")
     payer_name = state.get("payer_name", "")
     diagnosis_codes = state.get("diagnosis_codes", [])
     procedure_codes = state.get("procedure_codes", [])
@@ -73,18 +74,19 @@ async def run_code_audit(state: ClaimState) -> dict[str, Any]:
 
     # Step 1: Perform RAG retrieval
     # Build search query from diagnoses & procedures
-    dx_terms = " ".join([f"{dx.get('code', '')} {dx.get('description', '')}" for dx in diagnosis_codes])
-    px_terms = " ".join([f"{px.get('code', '')} {px.get('description', '')}" for px in procedure_codes])
+    dx_terms = " ".join(
+        [f"{dx.get('code', '')} {dx.get('description', '')}" for dx in diagnosis_codes]
+    )
+    px_terms = " ".join(
+        [f"{px.get('code', '')} {px.get('description', '')}" for px in procedure_codes]
+    )
     rag_query = f"{dx_terms} {px_terms}".strip()
 
     logger.debug("agent.code_audit.rag_search", query=rag_query)
 
     # Fetch coding guidelines
     coding_rules_docs = retrieve_with_scores(
-        collection_name="coding_rules",
-        query=rag_query,
-        top_k=4,
-        filter_kwargs={"market": market}
+        collection_name="coding_rules", query=rag_query, top_k=4, filter_kwargs={"market": market}
     )
 
     # Fetch payer policies matching this specific payer and query
@@ -92,7 +94,7 @@ async def run_code_audit(state: ClaimState) -> dict[str, Any]:
         collection_name="payer_policies",
         query=f"{payer_name} {rag_query}",
         top_k=3,
-        filter_kwargs={"market": market, "payer_name": payer_name}
+        filter_kwargs={"market": market, "payer_name": payer_name},
     )
 
     # Merge contexts
@@ -123,7 +125,7 @@ async def run_code_audit(state: ClaimState) -> dict[str, Any]:
             system_prompt=system_prompt,
             preferred_provider="groq",
             temperature=0.1,
-            json_mode=True
+            json_mode=True,
         )
 
         # Step 4: Parse findings
@@ -143,7 +145,7 @@ async def run_code_audit(state: ClaimState) -> dict[str, Any]:
             claim_id=claim_id,
             findings_count=len(findings),
             confidence=overall_confidence,
-            latency_ms=latency
+            latency_ms=latency,
         )
 
         # Track LLMOps stats
@@ -160,14 +162,17 @@ async def run_code_audit(state: ClaimState) -> dict[str, Any]:
             "total_prompt_tokens": state.get("total_prompt_tokens", 0) + prompt_tokens,
             "total_completion_tokens": state.get("total_completion_tokens", 0) + completion_tokens,
             "total_latency_ms": state.get("total_latency_ms", 0) + latency,
-            "llm_calls": state.get("llm_calls", []) + [{
-                "agent": "code_audit",
-                "provider": llm_response.get("provider"),
-                "model": llm_response.get("model"),
-                "latency_ms": latency,
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-            }]
+            "llm_calls": state.get("llm_calls", [])
+            + [
+                {
+                    "agent": "code_audit",
+                    "provider": llm_response.get("provider"),
+                    "model": llm_response.get("model"),
+                    "latency_ms": latency,
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                }
+            ],
         }
 
     except Exception as e:
@@ -181,6 +186,7 @@ async def run_code_audit(state: ClaimState) -> dict[str, Any]:
             "audit_summary": f"Audit performed with fallback clean-state due to agent error: {str(e)}",
             "status": "AUDIT_COMPLETE",
             "current_agent": "code_audit",
-            "processing_errors": state.get("processing_errors", []) + [f"Code audit agent error: {str(e)}"],
+            "processing_errors": state.get("processing_errors", [])
+            + [f"Code audit agent error: {str(e)}"],
             "total_latency_ms": state.get("total_latency_ms", 0) + latency,
         }

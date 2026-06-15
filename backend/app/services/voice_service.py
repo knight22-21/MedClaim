@@ -14,17 +14,16 @@ from __future__ import annotations
 import base64
 import io
 import json
-import logging
 from typing import Any
 
+import structlog
 from groq import Groq
 from gtts import gTTS
-import structlog
 
-from backend.app.config import settings
 from backend.agents.llm import query_llm
-from backend.rag.retrievers import retrieve_with_scores
+from backend.app.config import settings
 from backend.db.client import get_supabase_client
+from backend.rag.retrievers import retrieve_with_scores
 
 logger = structlog.get_logger("medclaim.services.voice")
 
@@ -35,15 +34,15 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.wav") -> s
         raise ValueError("GROQ_API_KEY is not configured")
 
     logger.info("voice.stt.start", filename=filename, size_bytes=len(audio_bytes))
-    
+
     # We use sync Groq client for whisper since there's no native async audio endpoint in the library
     # Or we can just use the sync client normally
     client = Groq(api_key=settings.GROQ_API_KEY)
-    
+
     # Groq whisper requires file tuple: (filename, file_object)
     file_obj = io.BytesIO(audio_bytes)
     file_obj.name = filename
-    
+
     try:
         transcription = client.audio.transcriptions.create(
             file=(filename, file_obj),
@@ -70,7 +69,7 @@ async def classify_intent(transcription: str) -> dict[str, Any]:
         "- GENERAL: Any other general greetings or questions.\n\n"
         "Return strict JSON with keys: 'intent' (string), 'extracted_entities' (dict of what you found like patient_name, claim_id, payer_name, code)."
     )
-    
+
     res = await query_llm(
         prompt=transcription,
         system_prompt=system_prompt,
@@ -78,7 +77,7 @@ async def classify_intent(transcription: str) -> dict[str, Any]:
         json_mode=True,
         tags=["voice_ai", "intent_classification"],
     )
-    
+
     json_data = res.get("json", {})
     return {
         "intent": json_data.get("intent", "GENERAL"),
@@ -90,12 +89,12 @@ async def execute_query(intent: str, entities: dict, transcription: str) -> tupl
     """Execute the data retrieval based on intent."""
     context = ""
     sources = []
-    
+
     try:
         if intent == "CLAIM_STATUS":
             claim_id = entities.get("claim_id")
             patient = entities.get("patient_name")
-            
+
             db = get_supabase_client()
             query = db.table("claims").select("*")
             if claim_id:
@@ -105,7 +104,7 @@ async def execute_query(intent: str, entities: dict, transcription: str) -> tupl
                 query = query.ilike("patient_name", f"%{patient}%")
             else:
                 return "No claim ID or patient name identified in query.", []
-                
+
             res = query.limit(3).execute()
             claims = res.data or []
             if not claims:
@@ -113,7 +112,7 @@ async def execute_query(intent: str, entities: dict, transcription: str) -> tupl
             else:
                 context = "Found claims:\n" + json.dumps(claims, indent=2)
                 sources = [f"Claim DB ({c['id']})" for c in claims]
-                
+
         elif intent == "CODING_QUESTION":
             docs = retrieve_with_scores("coding_rules", transcription, top_k=3)
             if docs:
@@ -121,7 +120,7 @@ async def execute_query(intent: str, entities: dict, transcription: str) -> tupl
                 sources = [d.metadata.get("source", "Coding Guidelines") for d, _ in docs]
             else:
                 context = "No coding rules found matching the query."
-                
+
         elif intent == "POLICY_QUESTION":
             docs = retrieve_with_scores("payer_policies", transcription, top_k=3)
             if docs:
@@ -129,29 +128,36 @@ async def execute_query(intent: str, entities: dict, transcription: str) -> tupl
                 sources = [d.metadata.get("source", "Payer Policies") for d, _ in docs]
             else:
                 context = "No payer policies found matching the query."
-                
+
         elif intent == "ANALYTICS":
             db = get_supabase_client()
             # Just grab the basic summary stats
-            today_res = db.table("claims").select("id", count="exact").gte("created_at", "today").execute()
-            denied_res = db.table("claims").select("id", count="exact").in_("status", ["DENIED", "FINAL_DENIED"]).execute()
+            today_res = (
+                db.table("claims").select("id", count="exact").gte("created_at", "today").execute()
+            )
+            denied_res = (
+                db.table("claims")
+                .select("id", count="exact")
+                .in_("status", ["DENIED", "FINAL_DENIED"])
+                .execute()
+            )
             all_res = db.table("claims").select("id", count="exact").execute()
-            
+
             total_today = today_res.count or 0
             denied = denied_res.count or 0
             total_all = all_res.count or 1
             rate = round((denied / total_all) * 100, 1)
-            
+
             context = f"Total claims today: {total_today}. Overall denial rate: {rate}%."
             sources = ["Analytics DB"]
-            
+
         else:
             context = "General query. Use your base knowledge."
-            
+
     except Exception as e:
         logger.error("voice.execute_query.failed", intent=intent, error=str(e))
         context = f"Error retrieving data: {str(e)}"
-        
+
     return context, list(set(sources))
 
 
@@ -163,9 +169,9 @@ async def generate_response(transcription: str, context: str) -> str:
         "using the provided context. Do not use markdown formatting "
         "like asterisks or hashes, as this text will be spoken via TTS."
     )
-    
+
     prompt = f"User Query: {transcription}\n\nContext Data:\n{context}"
-    
+
     res = await query_llm(
         prompt=prompt,
         system_prompt=system_prompt,
@@ -180,11 +186,11 @@ def synthesize_speech(text: str) -> str:
     """Synthesize speech using gTTS and return base64 encoded MP3."""
     logger.info("voice.tts.start", text_length=len(text))
     try:
-        tts = gTTS(text=text, lang='en', slow=False)
+        tts = gTTS(text=text, lang="en", slow=False)
         fp = io.BytesIO()
         tts.write_to_fp(fp)
         fp.seek(0)
-        encoded = base64.b64encode(fp.read()).decode('utf-8')
+        encoded = base64.b64encode(fp.read()).decode("utf-8")
         logger.info("voice.tts.complete")
         return f"data:audio/mp3;base64,{encoded}"
     except Exception as e:
@@ -192,7 +198,9 @@ def synthesize_speech(text: str) -> str:
         return ""
 
 
-async def process_voice_query(audio_bytes: bytes | None, filename: str = "audio.wav", text_query: str | None = None) -> dict[str, Any]:
+async def process_voice_query(
+    audio_bytes: bytes | None, filename: str = "audio.wav", text_query: str | None = None
+) -> dict[str, Any]:
     """
     Main pipeline for voice queries.
     If text_query is provided, skips STT.
@@ -204,23 +212,23 @@ async def process_voice_query(audio_bytes: bytes | None, filename: str = "audio.
         transcription = await transcribe_audio(audio_bytes, filename)
     else:
         raise ValueError("Must provide either audio_bytes or text_query")
-        
+
     # 2. Intent Classification
     classification = await classify_intent(transcription)
     intent = classification["intent"]
     entities = classification["entities"]
-    
+
     logger.info("voice.intent.classified", intent=intent, entities=entities)
-    
+
     # 3. Data Retrieval
     context, sources = await execute_query(intent, entities, transcription)
-    
+
     # 4. Response Generation
     response_text = await generate_response(transcription, context)
-    
+
     # 5. TTS
     audio_data_uri = synthesize_speech(response_text)
-    
+
     return {
         "transcription": transcription,
         "intent": intent,

@@ -8,9 +8,7 @@ and the agent pipeline to read/write claim state.
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime
 from typing import Any
-from uuid import UUID
 
 from backend.app.models.claim import ClaimCreate, ClaimResponse, ClaimStatus
 from backend.db.client import get_supabase_client
@@ -18,7 +16,11 @@ from backend.db.client import get_supabase_client
 logger = logging.getLogger("medclaim.services.claim")
 
 
-def _row_to_response(row: dict[str, Any], audit_data: dict[str, Any] | None = None, denial_data: dict[str, Any] | None = None) -> ClaimResponse:
+def _row_to_response(
+    row: dict[str, Any],
+    audit_data: dict[str, Any] | None = None,
+    denial_data: dict[str, Any] | None = None,
+) -> ClaimResponse:
     """Convert a Supabase row dict to a ClaimResponse model."""
     return ClaimResponse(
         id=row["id"],
@@ -77,22 +79,24 @@ async def create_claim(claim: ClaimCreate) -> ClaimResponse:
 async def get_claim(claim_id: str) -> ClaimResponse | None:
     """Fetch a single claim by UUID with audit and denial prediction data."""
     client = get_supabase_client()
-    
+
     # Fetch claim
     claim_result = client.table("claims").select("*").eq("id", claim_id).execute()
     if not claim_result.data:
         return None
-    
+
     claim_row = claim_result.data[0]
-    
+
     # Fetch audit results
     audit_result = client.table("audit_results").select("*").eq("claim_id", claim_id).execute()
     audit_data = audit_result.data[0] if audit_result.data else None
-    
+
     # Fetch denial predictions
-    denial_result = client.table("denial_predictions").select("*").eq("claim_id", claim_id).execute()
+    denial_result = (
+        client.table("denial_predictions").select("*").eq("claim_id", claim_id).execute()
+    )
     denial_data = denial_result.data[0] if denial_result.data else None
-    
+
     return _row_to_response(claim_row, audit_data, denial_data)
 
 
@@ -153,7 +157,9 @@ async def update_claim_status(
     return _row_to_response(result.data[0], None, None)
 
 
-async def ingest_eob(claim_id: str, denial_reason_code: str, denial_reason_desc: str = "") -> ClaimResponse | None:
+async def ingest_eob(
+    claim_id: str, denial_reason_code: str, denial_reason_desc: str = ""
+) -> ClaimResponse | None:
     """Mark a claim as DENIED after receiving an EOB."""
     client = get_supabase_client()
 
@@ -178,7 +184,7 @@ async def save_human_feedback(claim_id: str, specialist_id: str, action: str, no
         "claim_id": claim_id,
         "specialist_id": specialist_id,
         "action": action,
-        "notes": notes
+        "notes": notes,
     }
     result = client.table("human_feedback").insert(payload).execute()
     if not result.data:
@@ -187,9 +193,17 @@ async def save_human_feedback(claim_id: str, specialist_id: str, action: str, no
         logger.info("claim.feedback.saved | claim_id=%s action=%s", claim_id, action)
 
 
-async def save_audit_results(claim_id: str, findings: list[dict[str, Any]], confidence: float, 
-                             summary: str, llm_model: str, prompt_tokens: int, 
-                             completion_tokens: int, latency_ms: int, rag_docs: int = 0) -> None:
+async def save_audit_results(
+    claim_id: str,
+    findings: list[dict[str, Any]],
+    confidence: float,
+    summary: str,
+    llm_model: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+    latency_ms: int,
+    rag_docs: int = 0,
+) -> None:
     """Save audit results to the audit_results table."""
     client = get_supabase_client()
     payload = {
@@ -210,9 +224,17 @@ async def save_audit_results(claim_id: str, findings: list[dict[str, Any]], conf
         logger.info("claim.audit_save.success | claim_id=%s findings=%d", claim_id, len(findings))
 
 
-async def save_denial_prediction(claim_id: str, risk_score: int, risk_factors: list[dict[str, Any]],
-                                recommended_action: str, confidence: float, llm_model: str,
-                                prompt_tokens: int, completion_tokens: int, latency_ms: int) -> None:
+async def save_denial_prediction(
+    claim_id: str,
+    risk_score: int,
+    risk_factors: list[dict[str, Any]],
+    recommended_action: str,
+    confidence: float,
+    llm_model: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+    latency_ms: int,
+) -> None:
     """Save denial prediction results to the denial_predictions table."""
     client = get_supabase_client()
     payload = {
@@ -231,4 +253,3 @@ async def save_denial_prediction(claim_id: str, risk_score: int, risk_factors: l
         logger.error("claim.denial_save.failed | claim_id=%s", claim_id)
     else:
         logger.info("claim.denial_save.success | claim_id=%s risk_score=%d", claim_id, risk_score)
-

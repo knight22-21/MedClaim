@@ -11,17 +11,18 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, File, UploadFile
+from pydantic import BaseModel
 
 from backend.app.models.responses import APIResponse
+from backend.app.services.voice_service import process_voice_query
 
 logger = logging.getLogger("medclaim.routers.voice")
 
 router = APIRouter(prefix="/voice", tags=["Voice AI"])
 
 
-from pydantic import BaseModel
-from backend.app.services.voice_service import process_voice_query
+
 
 
 class TextQueryRequest(BaseModel):
@@ -43,7 +44,7 @@ async def voice_query(audio: UploadFile = File(...)) -> APIResponse:
     try:
         audio_bytes = await audio.read()
         result = await process_voice_query(audio_bytes=audio_bytes, filename=filename)
-        
+
         return APIResponse(
             success=True,
             data=result,
@@ -68,7 +69,7 @@ async def text_query(request: TextQueryRequest) -> APIResponse:
 
     try:
         result = await process_voice_query(audio_bytes=None, text_query=request.query)
-        
+
         return APIResponse(
             success=True,
             data=result,

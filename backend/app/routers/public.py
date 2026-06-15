@@ -7,7 +7,6 @@ No authentication required.
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 import structlog
@@ -43,24 +42,18 @@ class ContactRequestRequest(BaseModel):
 # Blog Endpoints
 @router.get("/blog", response_model=APIResponse[list[dict[str, Any]]])
 async def get_published_blog_posts(
-    category: str | None = None,
-    limit: int = 20,
-    offset: int = 0
+    category: str | None = None, limit: int = 20, offset: int = 0
 ) -> APIResponse[list[dict[str, Any]]]:
     """Get all published blog posts (public)."""
     try:
         posts = await get_blog_posts(
-            published_only=True,
-            category=category,
-            limit=limit,
-            offset=offset
+            published_only=True, category=category, limit=limit, offset=offset
         )
         return APIResponse(success=True, data=posts)
     except Exception as e:
         logger.error("public.blog.list_failed | error=%s", str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get blog posts"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to get blog posts"
         )
 
 
@@ -70,18 +63,14 @@ async def get_blog_post_by_slug(slug: str) -> APIResponse[dict[str, Any]]:
     try:
         post = await get_blog_post(slug=slug, published_only=True)
         if not post:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Blog post not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog post not found")
         return APIResponse(success=True, data=post)
     except HTTPException:
         raise
     except Exception as e:
         logger.error("public.blog.get_failed | slug=%s error=%s", slug, str(e))
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get blog post"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to get blog post"
         )
 
 
@@ -96,17 +85,17 @@ async def submit_demo_request(request: DemoRequestRequest) -> APIResponse[dict]:
             email=request.email,
             company=request.company,
             phone=request.phone,
-            message=request.message
+            message=request.message,
         )
         return APIResponse(
             success=True,
-            data={"message": "Demo request submitted successfully", "lead_id": lead_id}
+            data={"message": "Demo request submitted successfully", "lead_id": lead_id},
         )
     except Exception as e:
         logger.error("public.lead.demo_failed | email=%s error=%s", request.email, str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to submit demo request"
+            detail="Failed to submit demo request",
         )
 
 
@@ -120,15 +109,15 @@ async def submit_contact_request(request: ContactRequestRequest) -> APIResponse[
             email=request.email,
             company=request.company,
             phone=request.phone,
-            message=request.message
+            message=request.message,
         )
         return APIResponse(
             success=True,
-            data={"message": "Contact form submitted successfully", "lead_id": lead_id}
+            data={"message": "Contact form submitted successfully", "lead_id": lead_id},
         )
     except Exception as e:
         logger.error("public.lead.contact_failed | email=%s error=%s", request.email, str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to submit contact form"
+            detail="Failed to submit contact form",
         )

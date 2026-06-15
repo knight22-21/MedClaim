@@ -60,13 +60,13 @@ from backend.agents.nodes import (
 )
 from backend.agents.state import ClaimState
 from backend.agents.supervisor import route_claim
+from backend.app.models.claim import ClaimStatus
 from backend.app.services.claim_service import (
     get_claim,
-    update_claim_status,
     save_audit_results,
     save_denial_prediction,
+    update_claim_status,
 )
-from backend.app.models.claim import ClaimStatus
 
 logger = logging.getLogger("medclaim.agents.graph")
 
@@ -121,7 +121,7 @@ def build_graph() -> StateGraph:
         route_claim,
         {
             "ready_for_submission": "ready_for_submission",
-            "code_audit": "code_audit",      # correction loop
+            "code_audit": "code_audit",  # correction loop
             "human_review": "human_review",
             "__end__": END,
         },
@@ -152,6 +152,7 @@ def get_compiled_graph():
 
 
 # ── Public API ───────────────────────────────────────────────
+
 
 async def process_claim(claim_id: str) -> dict[str, Any]:
     """
@@ -211,7 +212,7 @@ async def process_claim(claim_id: str) -> dict[str, Any]:
                 "claim_id": claim_id,
                 "payer_name": initial_state.get("payer_name", ""),
             },
-            "callbacks": [] # Can attach specific callbacks here if needed
+            "callbacks": [],  # Can attach specific callbacks here if needed
         }
         final_state = await compiled.ainvoke(initial_state, config=run_config)
     except Exception as e:
@@ -247,7 +248,7 @@ async def process_claim(claim_id: str) -> dict[str, Any]:
             if call.get("agent") == "code_audit":
                 audit_llm_call = call
                 break
-        
+
         await save_audit_results(
             claim_id=claim_id,
             findings=audit_findings,
@@ -268,7 +269,7 @@ async def process_claim(claim_id: str) -> dict[str, Any]:
             if call.get("agent") == "denial_prediction":
                 denial_llm_call = call
                 break
-        
+
         await save_denial_prediction(
             claim_id=claim_id,
             risk_score=denial_risk_score,
@@ -285,8 +286,7 @@ async def process_claim(claim_id: str) -> dict[str, Any]:
         "pipeline.complete | claim_id=%s final_status=%s total_tokens=%d",
         claim_id,
         final_status_str,
-        final_state.get("total_prompt_tokens", 0)
-        + final_state.get("total_completion_tokens", 0),
+        final_state.get("total_prompt_tokens", 0) + final_state.get("total_completion_tokens", 0),
     )
 
     return final_state

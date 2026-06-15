@@ -7,12 +7,15 @@ LLM query parameters, response parsing, and state updates.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 
-from backend.agents.code_audit import run_code_audit, _format_rag_docs
-from backend.agents.state import ClaimState
+from backend.agents.code_audit import _format_rag_docs, run_code_audit
+
+if TYPE_CHECKING:
+    from backend.agents.state import ClaimState
 
 
 def _make_state(**overrides) -> ClaimState:
@@ -46,6 +49,7 @@ def _make_state(**overrides) -> ClaimState:
 # RAG Formatting Tests
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestRAGFormatting:
     """Test that Qdrant RAG docs are formatted cleanly for LLM consumption."""
 
@@ -59,14 +63,20 @@ class TestRAGFormatting:
                 self.metadata = metadata
 
         docs = [
-            (MockDoc("Verify high-level E/M matches documentation.", {
-                "guideline_source": "CMS",
-                "clinical_topic": "E/M Coding Guidelines"
-            }), 0.88),
-            (MockDoc("Unbundling code 99215 and 93000 is prohibited.", {
-                "payer_name": "Medicare",
-                "policy_type": "LCD"
-            }), 0.76)
+            (
+                MockDoc(
+                    "Verify high-level E/M matches documentation.",
+                    {"guideline_source": "CMS", "clinical_topic": "E/M Coding Guidelines"},
+                ),
+                0.88,
+            ),
+            (
+                MockDoc(
+                    "Unbundling code 99215 and 93000 is prohibited.",
+                    {"payer_name": "Medicare", "policy_type": "LCD"},
+                ),
+                0.76,
+            ),
         ]
 
         formatted = _format_rag_docs(docs)
@@ -81,6 +91,7 @@ class TestRAGFormatting:
 # ═══════════════════════════════════════════════════════════════
 # Agent Logic Tests (Mocked LLM & RAG)
 # ═══════════════════════════════════════════════════════════════
+
 
 @pytest.mark.asyncio
 class TestCodeAuditAgent:
@@ -104,11 +115,11 @@ class TestCodeAuditAgent:
                         "severity": "HIGH",
                         "description": "Level 5 E/M billed but documentation only supports Level 3.",
                         "suggested_correction": "Downcode to 99213",
-                        "confidence": 0.95
+                        "confidence": 0.95,
                     }
                 ],
                 "overall_confidence": 0.92,
-                "summary": "Upcoding detected on primary procedure."
+                "summary": "Upcoding detected on primary procedure.",
             },
             "provider": "groq",
             "model": "llama-3.3-70b-versatile",

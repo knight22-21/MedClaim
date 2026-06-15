@@ -31,8 +31,8 @@ from backend.app.services.claim_service import (
     get_claim,
     ingest_eob,
     list_claims,
-    update_claim_status,
     save_human_feedback,
+    update_claim_status,
 )
 
 logger = logging.getLogger("medclaim.routers.claims")
@@ -139,10 +139,18 @@ async def approve_claim(claim_id: str, approval: ClaimApproval) -> APIResponse[C
             detail=f"Claim in status {claim.status} cannot be approved",
         )
 
-    result = await update_claim_status(claim_id, new_status, human_review_flag=False, human_review_reason=approval.notes)
+    result = await update_claim_status(
+        claim_id, new_status, human_review_flag=False, human_review_reason=approval.notes
+    )
     await save_human_feedback(claim_id, approval.approved_by, "APPROVED_OVERRIDE", approval.notes)
-    logger.info("claim.approved | claim_id=%s by=%s new_status=%s", claim_id, approval.approved_by, new_status)
+    logger.info(
+        "claim.approved | claim_id=%s by=%s new_status=%s",
+        claim_id,
+        approval.approved_by,
+        new_status,
+    )
     return APIResponse(success=True, data=result, message=f"Claim approved → {new_status.value}")
+
 
 @router.post("/{claim_id}/reject", response_model=APIResponse[ClaimResponse])
 async def reject_claim(claim_id: str, rejection: ClaimApproval) -> APIResponse[ClaimResponse]:
@@ -159,7 +167,14 @@ async def reject_claim(claim_id: str, rejection: ClaimApproval) -> APIResponse[C
             detail=f"Claim in status {claim.status} cannot be rejected",
         )
 
-    result = await update_claim_status(claim_id, ClaimStatus.DENIED, human_review_flag=False, human_review_reason=rejection.notes)
+    result = await update_claim_status(
+        claim_id, ClaimStatus.DENIED, human_review_flag=False, human_review_reason=rejection.notes
+    )
     await save_human_feedback(claim_id, rejection.approved_by, "REJECTED", rejection.notes)
-    logger.info("claim.rejected | claim_id=%s by=%s reason=%s", claim_id, rejection.approved_by, rejection.notes)
+    logger.info(
+        "claim.rejected | claim_id=%s by=%s reason=%s",
+        claim_id,
+        rejection.approved_by,
+        rejection.notes,
+    )
     return APIResponse(success=True, data=result, message="Claim rejected → DENIED")

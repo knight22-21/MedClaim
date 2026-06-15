@@ -9,16 +9,17 @@ then generates a highly structured and cited appeal letter using Gemini
 
 from __future__ import annotations
 
-import logging
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
 from backend.agents.llm import query_llm
-from backend.agents.state import ClaimState
 from backend.prompts.loader import render_prompt
 from backend.rag.retrievers import retrieve_with_scores
+
+if TYPE_CHECKING:
+    from backend.agents.state import ClaimState
 
 logger = structlog.get_logger("medclaim.agents.appeal_drafting")
 
@@ -35,10 +36,9 @@ def _format_docs_for_appeal(results: list[tuple[Any, float]], doc_type: str) -> 
 
         source = meta.get("source", meta.get("payer_name", "Unknown Source"))
         title = meta.get("title", meta.get("policy_type", "Document"))
-        
+
         formatted.append(
-            f"[{idx}] Source: {source} | Title: {title} (Sim: {score:.4f})\n"
-            f"Text: {content}\n---"
+            f"[{idx}] Source: {source} | Title: {title} (Sim: {score:.4f})\nText: {content}\n---"
         )
     return "\n".join(formatted)
 
@@ -67,7 +67,7 @@ async def run_appeal_drafting(state: ClaimState) -> dict[str, Any]:
     # ── Step 1: RAG retrieval for policies and guidelines ────
     dx_terms = " ".join([dx.get("code", "") for dx in diagnosis_codes])
     px_terms = " ".join([px.get("code", "") for px in procedure_codes])
-    
+
     # Query for payer policies
     policy_query = f"{payer_name} {dx_terms} {px_terms} {denial_reason_code}".strip()
     try:
@@ -78,7 +78,9 @@ async def run_appeal_drafting(state: ClaimState) -> dict[str, Any]:
             filter_kwargs={"market": market, "payer_name": payer_name},
         )
     except Exception as e:
-        logger.warning("agent.appeal_drafting.rag_failed", collection="payer_policies", error=str(e))
+        logger.warning(
+            "agent.appeal_drafting.rag_failed", collection="payer_policies", error=str(e)
+        )
         policy_docs = []
 
     # Query for clinical guidelines
@@ -91,7 +93,9 @@ async def run_appeal_drafting(state: ClaimState) -> dict[str, Any]:
             filter_kwargs={"market": market},
         )
     except Exception as e:
-        logger.warning("agent.appeal_drafting.rag_failed", collection="clinical_guidelines", error=str(e))
+        logger.warning(
+            "agent.appeal_drafting.rag_failed", collection="clinical_guidelines", error=str(e)
+        )
         guideline_docs = []
 
     policy_context = _format_docs_for_appeal(policy_docs, "payer policies")
@@ -129,17 +133,19 @@ async def run_appeal_drafting(state: ClaimState) -> dict[str, Any]:
             prompt=user_prompt,
             system_prompt=system_prompt,
             preferred_provider="google",
-            temperature=0.3, # Slightly higher temperature for better narrative flow
+            temperature=0.3,  # Slightly higher temperature for better narrative flow
             json_mode=True,
         )
 
         # ── Step 4: Parse response ───────────────────────────
         appeal_json = llm_response.get("json") or {}
 
-        letter_content = appeal_json.get("letter_content", "Error: Failed to generate letter content.")
+        letter_content = appeal_json.get(
+            "letter_content", "Error: Failed to generate letter content."
+        )
         supporting_docs = appeal_json.get("supporting_documents", [])
         cited_policies = appeal_json.get("cited_policies", [])
-        cited_guidelines = appeal_json.get("cited_guidelines", [])
+        appeal_json.get("cited_guidelines", [])
 
         latency = int((time.time() - start_time) * 1000)
 
@@ -164,14 +170,17 @@ async def run_appeal_drafting(state: ClaimState) -> dict[str, Any]:
             "total_prompt_tokens": state.get("total_prompt_tokens", 0) + prompt_tokens,
             "total_completion_tokens": state.get("total_completion_tokens", 0) + completion_tokens,
             "total_latency_ms": state.get("total_latency_ms", 0) + latency,
-            "llm_calls": state.get("llm_calls", []) + [{
-                "agent": "appeal_drafting",
-                "provider": llm_response.get("provider"),
-                "model": llm_response.get("model"),
-                "latency_ms": latency,
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-            }],
+            "llm_calls": state.get("llm_calls", [])
+            + [
+                {
+                    "agent": "appeal_drafting",
+                    "provider": llm_response.get("provider"),
+                    "model": llm_response.get("model"),
+                    "latency_ms": latency,
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                }
+            ],
         }
 
     except Exception as e:
@@ -199,6 +208,6 @@ async def run_appeal_drafting(state: ClaimState) -> dict[str, Any]:
             "status": "APPEAL_DRAFT_READY",
             "current_agent": "appeal_drafting",
             "processing_errors": state.get("processing_errors", [])
-                + [f"Appeal drafting error: {str(e)}"],
+            + [f"Appeal drafting error: {str(e)}"],
             "total_latency_ms": state.get("total_latency_ms", 0) + latency,
         }

@@ -8,18 +8,20 @@ Provides utilities for creating LangSmith datasets and running evaluations.
 Implementation: Subphase 4.3
 """
 
-import os
 import logging
+import os
+
 from langsmith import Client
 
 logger = logging.getLogger("medclaim.llmops.tracing")
+
 
 def get_langsmith_client() -> Client | None:
     """Get the LangSmith client if configured."""
     api_key = os.getenv("LANGSMITH_API_KEY")
     # Check both string "true" and environment variable existence
     tracing_enabled = os.getenv("LANGSMITH_TRACING", "").lower() in ("true", "1", "yes")
-    
+
     if api_key and tracing_enabled:
         try:
             return Client(api_key=api_key)
@@ -28,17 +30,13 @@ def get_langsmith_client() -> Client | None:
             return None
     return None
 
+
 def capture_feedback(run_id: str, key: str, score: float, comment: str = "") -> None:
     """Log manual feedback to a LangSmith trace."""
     client = get_langsmith_client()
     if client:
         try:
-            client.create_feedback(
-                run_id,
-                key=key,
-                score=score,
-                comment=comment
-            )
+            client.create_feedback(run_id, key=key, score=score, comment=comment)
             logger.info("langsmith.feedback.logged | run_id=%s key=%s score=%s", run_id, key, score)
         except Exception as e:
             logger.error("langsmith.feedback.failed | error=%s", str(e))

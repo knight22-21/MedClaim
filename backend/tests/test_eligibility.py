@@ -7,12 +7,16 @@ the fixture scenarios in data/eligibility_fixtures.yaml.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from backend.agents.eligibility import run_eligibility_check
-from backend.agents.state import ClaimState
 from backend.app.services.eligibility_service import (
     get_payer_info,
     verify_eligibility,
 )
+
+if TYPE_CHECKING:
+    from backend.agents.state import ClaimState
 
 
 def _make_state(**overrides) -> ClaimState:
@@ -42,6 +46,7 @@ def _make_state(**overrides) -> ClaimState:
 # ═══════════════════════════════════════════════════════════════
 # Payer Directory Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestPayerDirectory:
     """Test payer directory loading and lookup."""
@@ -74,6 +79,7 @@ class TestPayerDirectory:
 # ═══════════════════════════════════════════════════════════════
 # Eligibility Service Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestEligibilityService:
     """Test the verify_eligibility function against fixture scenarios."""
@@ -172,6 +178,7 @@ class TestEligibilityService:
 # Eligibility Agent Tests
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestEligibilityAgent:
     """Test the full agent function that integrates into the LangGraph."""
 
@@ -213,6 +220,7 @@ class TestEligibilityAgent:
 # ═══════════════════════════════════════════════════════════════
 # Graph Integration Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestEligibilityGraphIntegration:
     """Test that eligibility results flow correctly through the graph."""

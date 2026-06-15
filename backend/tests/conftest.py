@@ -30,9 +30,7 @@ def sample_claim_data() -> dict:
         "payer_id": "MCR-001",
         "date_of_service": "2025-11-20",
         "facility_type": "outpatient_hospital",
-        "diagnosis_codes": [
-            {"code": "J18.9", "description": "Pneumonia, unspecified organism"}
-        ],
+        "diagnosis_codes": [{"code": "J18.9", "description": "Pneumonia, unspecified organism"}],
         "procedure_codes": [
             {"code": "99213", "description": "Office visit, established patient, low complexity"}
         ],

@@ -13,15 +13,16 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from langchain_community.embeddings import OllamaEmbeddings
 from pydantic import BaseModel
+from qdrant_client.models import PointStruct
 
 from backend.app.services.claim_service import get_claim
 from backend.rag.setup import get_qdrant_client
-from qdrant_client.models import PointStruct
-from langchain_community.embeddings import OllamaEmbeddings
 
 logger = logging.getLogger("medclaim.routers.feedback")
 router = APIRouter(prefix="/feedback", tags=["Feedback Loop"])
+
 
 class OutcomePayload(BaseModel):
     claim_id: str
@@ -38,22 +39,26 @@ async def process_claim_outcome(payload: OutcomePayload) -> dict[str, Any]:
     """
     claim_id = payload.claim_id
     logger.info("feedback.received | claim_id=%s outcome=%s", claim_id, payload.outcome)
-    
+
     # 1. Fetch full claim context
     claim = await get_claim(claim_id)
     if not claim:
         raise HTTPException(status_code=404, detail="Claim not found")
-        
+
     # 2. Format as a pattern document
-    dx_str = ", ".join([f"{d.get('code')} ({d.get('description', '')})" for d in claim.diagnosis_codes])
-    px_str = ", ".join([f"{p.get('code')} ({p.get('description', '')})" for p in claim.procedure_codes])
-    
+    dx_str = ", ".join(
+        [f"{d.get('code')} ({d.get('description', '')})" for d in claim.diagnosis_codes]
+    )
+    px_str = ", ".join(
+        [f"{p.get('code')} ({p.get('description', '')})" for p in claim.procedure_codes]
+    )
+
     content = (
         f"Payer: {claim.payer_name} | Facility: {claim.facility_type} | "
         f"Diagnoses: {dx_str} | Procedures: {px_str} | "
         f"Outcome: {payload.outcome} | Denial Reason: {payload.denial_reason_code or 'N/A'}"
     )
-    
+
     # 3. Generate embedding
     try:
         embeddings = OllamaEmbeddings(model="nomic-embed-text")
@@ -61,7 +66,7 @@ async def process_claim_outcome(payload: OutcomePayload) -> dict[str, Any]:
     except Exception as e:
         logger.warning("feedback.embed.failed | claim_id=%s error=%s", claim_id, str(e))
         vector = [0.0] * 768  # Fallback zero vector if Ollama is unavailable
-        
+
     # 4. Upsert into Qdrant using the claim UUID as the point ID to prevent duplicates
     try:
         qdrant = get_qdrant_client()
@@ -69,7 +74,7 @@ async def process_claim_outcome(payload: OutcomePayload) -> dict[str, Any]:
             collection_name="denial_patterns",
             points=[
                 PointStruct(
-                    id=str(claim.id), # Use claim UUID to overwrite if status updates
+                    id=str(claim.id),  # Use claim UUID to overwrite if status updates
                     vector=vector,
                     payload={
                         "page_content": content,
@@ -79,11 +84,11 @@ async def process_claim_outcome(payload: OutcomePayload) -> dict[str, Any]:
                             "facility_type": claim.facility_type,
                             "outcome": payload.outcome,
                             "denial_reason_code": payload.denial_reason_code,
-                            "notes": payload.notes
-                        }
-                    }
+                            "notes": payload.notes,
+                        },
+                    },
                 )
-            ]
+            ],
         )
         logger.info("feedback.upserted | claim_id=%s", claim_id)
         return {"success": True, "message": "Outcome embedded and upserted to Qdrant"}

@@ -30,8 +30,10 @@ Routing Table:
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
-from backend.agents.state import ClaimState
+if TYPE_CHECKING:
+    from backend.agents.state import ClaimState
 
 logger = logging.getLogger("medclaim.agents.supervisor")
 
@@ -151,8 +153,7 @@ def route_claim(state: ClaimState) -> str:
 
         else:
             logger.warning(
-                "supervisor.route.max_retries | "
-                "claim_id=%s next_node=%s risk_score=%s retry=%s",
+                "supervisor.route.max_retries | claim_id=%s next_node=%s risk_score=%s retry=%s",
                 claim_id,
                 NODE_HUMAN_REVIEW,
                 risk_score,

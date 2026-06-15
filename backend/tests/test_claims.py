@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi.testclient import TestClient
 
 from backend.app.main import app
@@ -28,7 +26,9 @@ VALID_FHIR_CLAIM = {
     "id": "12345",
     "status": "active",
     "type": {
-        "coding": [{"system": "http://terminology.hl7.org/CodeSystem/claim-type", "code": "professional"}]
+        "coding": [
+            {"system": "http://terminology.hl7.org/CodeSystem/claim-type", "code": "professional"}
+        ]
     },
     "patient": {"reference": "Patient/1"},
     "contained": [
@@ -36,7 +36,7 @@ VALID_FHIR_CLAIM = {
             "resourceType": "Patient",
             "id": "1",
             "name": [{"family": "Patient", "given": ["Test"]}],
-            "birthDate": "1990-01-01"
+            "birthDate": "1990-01-01",
         }
     ],
     "created": "2024-01-01T12:00:00Z",
@@ -46,7 +46,7 @@ VALID_FHIR_CLAIM = {
             "sequence": 1,
             "diagnosisCodeableConcept": {
                 "coding": [{"system": "http://hl7.org/fhir/sid/icd-10-cm", "code": "J18.9"}]
-            }
+            },
         }
     ],
     "item": [
@@ -54,10 +54,10 @@ VALID_FHIR_CLAIM = {
             "sequence": 1,
             "productOrService": {
                 "coding": [{"system": "http://www.ama-assn.org/go/cpt", "code": "99213"}]
-            }
+            },
         }
     ],
-    "total": {"value": 150.0, "currency": "USD"}
+    "total": {"value": 150.0, "currency": "USD"},
 }
 
 

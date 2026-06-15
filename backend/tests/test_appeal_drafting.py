@@ -7,12 +7,15 @@ LLM JSON parsing, and graceful fallback on LLM errors.
 
 from __future__ import annotations
 
-from unittest.mock import patch, MagicMock
+from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 
-from backend.agents.appeal_drafting import run_appeal_drafting, _format_docs_for_appeal
-from backend.agents.state import ClaimState
+from backend.agents.appeal_drafting import _format_docs_for_appeal, run_appeal_drafting
+
+if TYPE_CHECKING:
+    from backend.agents.state import ClaimState
 
 
 def _make_state(**overrides) -> ClaimState:
@@ -48,6 +51,7 @@ def _make_state(**overrides) -> ClaimState:
 # RAG Formatting Tests
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestRAGFormatting:
     def test_empty_results_returns_default(self):
         result = _format_docs_for_appeal([], "clinical guidelines")
@@ -60,10 +64,13 @@ class TestRAGFormatting:
                 self.metadata = metadata
 
         docs = [
-            (MockDoc("Requires documentation of conservative treatment.", {
-                "source": "CMS",
-                "title": "LCD L33622"
-            }), 0.92)
+            (
+                MockDoc(
+                    "Requires documentation of conservative treatment.",
+                    {"source": "CMS", "title": "LCD L33622"},
+                ),
+                0.92,
+            )
         ]
 
         formatted = _format_docs_for_appeal(docs, "payer policies")
@@ -77,9 +84,9 @@ class TestRAGFormatting:
 # Agent Logic Tests (Mocked)
 # ═══════════════════════════════════════════════════════════════
 
+
 @pytest.mark.asyncio
 class TestAppealDraftingAgent:
-
     @patch("backend.agents.appeal_drafting.retrieve_with_scores")
     @patch("backend.agents.appeal_drafting.query_llm")
     async def test_successful_appeal_generation(self, mock_query_llm, mock_retrieve):
@@ -91,7 +98,7 @@ class TestAppealDraftingAgent:
                 "letter_content": "Dear Medicare,\n\nWe are appealing the denial...",
                 "supporting_documents": ["Medical Records", "Conservative Treatment Log"],
                 "cited_policies": ["LCD L33622"],
-                "cited_guidelines": ["AHA Guidelines"]
+                "cited_guidelines": ["AHA Guidelines"],
             },
             "provider": "google",
             "model": "gemini-1.5-flash",
@@ -130,7 +137,7 @@ class TestAppealDraftingAgent:
         assert "TEST-FALLBACK-123" in result["appeal_letter_content"]
         assert "CO-16" in result["appeal_letter_content"]
         assert "Gemini API Timeout" in result["appeal_letter_content"]
-        
+
         assert len(result["processing_errors"]) == 1
         assert "Gemini API Timeout" in result["processing_errors"][0]
 
@@ -138,6 +145,7 @@ class TestAppealDraftingAgent:
 # ═══════════════════════════════════════════════════════════════
 # Graph Integration Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 @pytest.mark.asyncio
 class TestAppealDraftingGraphIntegration:
@@ -147,30 +155,31 @@ class TestAppealDraftingGraphIntegration:
     @patch("backend.agents.appeal_drafting.query_llm")
     async def test_denied_routes_to_end_with_draft(self, mock_query_llm, mock_retrieve):
         from backend.agents.graph import build_graph
-        compiled = build_graph().compile()
-        
+
+        build_graph().compile()
+
         mock_retrieve.return_value = []
         mock_query_llm.return_value = {
             "json": {
                 "letter_content": "Drafted appeal",
             },
-            "latency_ms": 100
+            "latency_ms": 100,
         }
 
         # Start directly at the appeal_drafting node, simulating a DENIED claim
         # that was routed to the appeal drafting agent
-        state = _make_state(status="DENIED")
-        
+        _make_state(status="DENIED")
+
         # Invoke the graph starting from the appeal_drafting node (simulated by passing the state)
         # Note: In a real flow, DENIED status would be set by the supervisor or a previous node,
         # but the graph expects us to start at the entrypoint unless we use `.stream` or similar.
         # Since we just want to test the `appeal_drafting` node's routing, we can call it directly
         # and see where the supervisor sends it.
         # But `appeal_drafting` is a terminal node, so it goes to __end__.
-        
+
         # Actually, let's just test that the supervisor routes APPEAL_DRAFT_READY to END
-        from backend.agents.supervisor import route_claim, NODE_END
-        
+        from backend.agents.supervisor import NODE_END, route_claim
+
         # The node outputs status="APPEAL_DRAFT_READY"
         post_node_state = _make_state(status="APPEAL_DRAFT_READY")
         assert route_claim(post_node_state) == NODE_END

@@ -12,14 +12,16 @@ For development/demo, we use the fixture-based mock.
 from __future__ import annotations
 
 import logging
-from datetime import date
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from backend.agents.state import EligibilityResult
+if TYPE_CHECKING:
+    from datetime import date
+
+    from backend.agents.state import EligibilityResult
 
 logger = logging.getLogger("medclaim.services.eligibility")
 
@@ -34,11 +36,13 @@ def _load_payer_directory() -> dict[str, list[dict[str, Any]]]:
         logger.warning("payer_directory.yaml not found at %s", path)
         return {"us_payers": [], "india_payers": []}
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
-    logger.info("payer_directory loaded: %d US, %d India",
-                len(data.get("us_payers", [])),
-                len(data.get("india_payers", [])))
+    logger.info(
+        "payer_directory loaded: %d US, %d India",
+        len(data.get("us_payers", [])),
+        len(data.get("india_payers", [])),
+    )
     return data
 
 
@@ -50,7 +54,7 @@ def _load_eligibility_fixtures() -> dict[str, Any]:
         logger.warning("eligibility_fixtures.yaml not found at %s", path)
         return {"defaults": {}, "fixtures": []}
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
     logger.info("eligibility_fixtures loaded: %d scenarios", len(data.get("fixtures", [])))
     return data
@@ -103,15 +107,16 @@ def _find_fixture_match(
 
     # Priority 1: Exact match
     for fix in fixtures:
-        if (fix.get("payer_id") == payer_id
-                and fix.get("patient_dob") == patient_dob
-                and fix.get("procedure_code") == procedure_code):
+        if (
+            fix.get("payer_id") == payer_id
+            and fix.get("patient_dob") == patient_dob
+            and fix.get("procedure_code") == procedure_code
+        ):
             return fix
 
     # Priority 2: Match payer + procedure (ignore DOB)
     for fix in fixtures:
-        if (fix.get("payer_id") == payer_id
-                and fix.get("procedure_code") == procedure_code):
+        if fix.get("payer_id") == payer_id and fix.get("procedure_code") == procedure_code:
             return fix
 
     # Priority 3: Match payer only
@@ -153,7 +158,10 @@ def verify_eligibility(
 
     logger.info(
         "eligibility.verify_start | payer=%s dob=%s procedure=%s market=%s",
-        payer_id, dob_str, primary_procedure, market,
+        payer_id,
+        dob_str,
+        primary_procedure,
+        market,
     )
 
     # Step 1: Validate payer exists
@@ -174,7 +182,10 @@ def verify_eligibility(
 
         logger.info(
             "eligibility.fixture_matched | payer=%s active=%s covered=%s in_network=%s",
-            payer_id, coverage_active, procedure_covered, provider_in_network,
+            payer_id,
+            coverage_active,
+            procedure_covered,
+            provider_in_network,
         )
     else:
         # Use defaults — assume eligible
@@ -217,7 +228,9 @@ def verify_eligibility(
 
     logger.info(
         "eligibility.verify_complete | payer=%s eligible=%s reason=%s",
-        payer_id, is_eligible, failure_reason or "none",
+        payer_id,
+        is_eligible,
+        failure_reason or "none",
     )
 
     return result

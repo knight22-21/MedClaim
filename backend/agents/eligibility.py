@@ -22,13 +22,15 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from backend.agents.state import ClaimState
 from backend.app.services.eligibility_service import (
     get_payer_info,
     verify_eligibility,
 )
+
+if TYPE_CHECKING:
+    from backend.agents.state import ClaimState
 
 logger = logging.getLogger("medclaim.agents.eligibility")
 
@@ -57,7 +59,9 @@ def run_eligibility_check(state: ClaimState) -> dict[str, Any]:
     start = time.time()
     logger.info(
         "agent.eligibility.start | claim_id=%s payer=%s market=%s",
-        claim_id, payer_name, market,
+        claim_id,
+        payer_name,
+        market,
     )
 
     try:
@@ -78,11 +82,13 @@ def run_eligibility_check(state: ClaimState) -> dict[str, Any]:
         if is_eligible:
             logger.info(
                 "agent.eligibility.verified | claim_id=%s payer=%s latency_ms=%d",
-                claim_id, payer_name, latency,
+                claim_id,
+                payer_name,
+                latency,
             )
 
             # Look up payer info for enrichment
-            payer_info = get_payer_info(payer_id, market)
+            get_payer_info(payer_id, market)
 
             return {
                 "eligibility_result": result,
@@ -93,7 +99,10 @@ def run_eligibility_check(state: ClaimState) -> dict[str, Any]:
         else:
             logger.warning(
                 "agent.eligibility.failed | claim_id=%s payer=%s reason=%s latency_ms=%d",
-                claim_id, payer_name, failure_reason, latency,
+                claim_id,
+                payer_name,
+                failure_reason,
+                latency,
             )
             return {
                 "eligibility_result": result,
@@ -108,7 +117,9 @@ def run_eligibility_check(state: ClaimState) -> dict[str, Any]:
         latency = int((time.time() - start) * 1000)
         logger.error(
             "agent.eligibility.error | claim_id=%s error=%s latency_ms=%d",
-            claim_id, str(e), latency,
+            claim_id,
+            str(e),
+            latency,
         )
 
         return {

@@ -18,14 +18,16 @@ Node signatures:
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from backend.agents.state import ClaimState
+if TYPE_CHECKING:
+    from backend.agents.state import ClaimState
 
 logger = logging.getLogger("medclaim.agents.nodes")
 
 
 # ── Eligibility Check Node ───────────────────────────────────
+
 
 def eligibility_check(state: ClaimState) -> dict[str, Any]:
     """
@@ -38,10 +40,12 @@ def eligibility_check(state: ClaimState) -> dict[str, Any]:
         4. Returns structured EligibilityResult
     """
     from backend.agents.eligibility import run_eligibility_check
+
     return run_eligibility_check(state)
 
 
 # ── Code Audit Node ─────────────────────────────────────────
+
 
 async def code_audit(state: ClaimState) -> dict[str, Any]:
     """
@@ -54,10 +58,12 @@ async def code_audit(state: ClaimState) -> dict[str, Any]:
         4. Parses findings: upcoding, unbundling, missing modifiers
     """
     from backend.agents.code_audit import run_code_audit
+
     return await run_code_audit(state)
 
 
 # ── Denial Prediction Node ──────────────────────────────────
+
 
 async def denial_prediction(state: ClaimState) -> dict[str, Any]:
     """
@@ -70,10 +76,12 @@ async def denial_prediction(state: ClaimState) -> dict[str, Any]:
         4. Returns risk_score (0-100) + risk_factors + recommended_action
     """
     from backend.agents.denial_prediction import run_denial_prediction
+
     return await run_denial_prediction(state)
 
 
 # ── Ready for Submission Node ────────────────────────────────
+
 
 def ready_for_submission(state: ClaimState) -> dict[str, Any]:
     """Mark claim as ready for human-approved submission."""
@@ -88,6 +96,7 @@ def ready_for_submission(state: ClaimState) -> dict[str, Any]:
 
 # ── Appeal Drafting Node ─────────────────────────────────────
 
+
 async def appeal_drafting(state: ClaimState) -> dict[str, Any]:
     """
     Draft an appeal letter for a denied claim.
@@ -98,10 +107,12 @@ async def appeal_drafting(state: ClaimState) -> dict[str, Any]:
         3. Returns generated letter content and citations
     """
     from backend.agents.appeal_drafting import run_appeal_drafting
+
     return await run_appeal_drafting(state)
 
 
 # ── Human Review Node ───────────────────────────────────────
+
 
 def human_review(state: ClaimState) -> dict[str, Any]:
     """
@@ -116,15 +127,11 @@ def human_review(state: ClaimState) -> dict[str, Any]:
     reasons = []
 
     if confidence < 0.80:
-        reasons.append(
-            f"Audit confidence {confidence:.2f} below 0.80 threshold"
-        )
+        reasons.append(f"Audit confidence {confidence:.2f} below 0.80 threshold")
 
     if risk_score > 70:
         retry = state.get("retry_count", 0)
-        reasons.append(
-            f"Denial risk {risk_score}% after {retry} correction attempts"
-        )
+        reasons.append(f"Denial risk {risk_score}% after {retry} correction attempts")
 
     if not reasons:
         reasons.append(f"Routed from {current_agent}")

@@ -21,11 +21,10 @@ from typing import Any
 
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
+from qdrant_client.models import FieldCondition, Filter, MatchValue
 
 from backend.app.config import settings
 from backend.rag.embeddings import get_embedding_function
-from backend.rag.setup import VECTOR_SIZE
 
 logger = logging.getLogger("medclaim.rag.retrievers")
 
@@ -34,7 +33,7 @@ logger = logging.getLogger("medclaim.rag.retrievers")
 SIMILARITY_THRESHOLDS = {
     "coding_rules": 0.70,
     "payer_policies": 0.70,
-    "denial_patterns": 0.65,      # Lower threshold — synthetic data is noisier
+    "denial_patterns": 0.65,  # Lower threshold — synthetic data is noisier
     "clinical_guidelines": 0.70,
 }
 
@@ -42,7 +41,7 @@ SIMILARITY_THRESHOLDS = {
 DEFAULT_TOP_K = {
     "coding_rules": 5,
     "payer_policies": 3,
-    "denial_patterns": 10,        # More examples for few-shot denial prediction
+    "denial_patterns": 10,  # More examples for few-shot denial prediction
     "clinical_guidelines": 3,
 }
 
@@ -122,8 +121,7 @@ def get_retriever(
     """
     if collection_name not in SIMILARITY_THRESHOLDS:
         raise ValueError(
-            f"Unknown collection: {collection_name}. "
-            f"Valid: {list(SIMILARITY_THRESHOLDS.keys())}"
+            f"Unknown collection: {collection_name}. Valid: {list(SIMILARITY_THRESHOLDS.keys())}"
         )
 
     vector_store = get_vector_store(collection_name)
@@ -204,12 +202,11 @@ def retrieve_with_scores(
                 "retrieval.success"
                 f" (collection={collection_name}, "
                 f"top_score={round(top_score, 4)}, "
-                f"num_results={len(results)}")
+                f"num_results={len(results)}"
+            )
     else:
         logger.warning(
-            "retrieval.no_results"
-            f" (collection={collection_name}, "
-            f"query_preview={query[:100]}",
+            f"retrieval.no_results (collection={collection_name}, query_preview={query[:100]}",
         )
 
     return results

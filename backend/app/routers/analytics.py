@@ -15,9 +15,8 @@ import logging
 from fastapi import APIRouter
 
 from backend.app.models.responses import (
-    APIResponse,
-    AnalyticsResponse,
     AnalyticsSummary,
+    APIResponse,
     DenialByPayer,
 )
 from backend.db.client import get_supabase_client
@@ -35,10 +34,7 @@ async def get_summary() -> APIResponse[AnalyticsSummary]:
 
         # Total claims today
         today_result = (
-            client.table("claims")
-            .select("id", count="exact")
-            .gte("created_at", "today")
-            .execute()
+            client.table("claims").select("id", count="exact").gte("created_at", "today").execute()
         )
         total_today = today_result.count or 0
 
@@ -49,11 +45,7 @@ async def get_summary() -> APIResponse[AnalyticsSummary]:
             .in_("status", ["DENIED", "FINAL_DENIED"])
             .execute()
         )
-        all_claims = (
-            client.table("claims")
-            .select("id", count="exact")
-            .execute()
-        )
+        all_claims = client.table("claims").select("id", count="exact").execute()
         total_all = all_claims.count or 1
         denial_rate = round((denied.count or 0) / total_all * 100, 1)
 
@@ -113,9 +105,13 @@ async def get_denial_by_payer() -> APIResponse[list[DenialByPayer]]:
                 payer_name=payer,
                 total_claims=stats["total"],
                 denied_claims=stats["denied"],
-                denial_rate_pct=round(stats["denied"] / stats["total"] * 100, 1) if stats["total"] > 0 else 0,
+                denial_rate_pct=round(stats["denied"] / stats["total"] * 100, 1)
+                if stats["total"] > 0
+                else 0,
             )
-            for payer, stats in sorted(payer_stats.items(), key=lambda x: x[1]["denied"], reverse=True)
+            for payer, stats in sorted(
+                payer_stats.items(), key=lambda x: x[1]["denied"], reverse=True
+            )
         ]
         return APIResponse(success=True, data=denials)
 
@@ -144,10 +140,7 @@ async def get_claim_volume() -> APIResponse:
             elif row["status"] in ("DENIED", "FINAL_DENIED"):
                 daily[dt]["denied"] += 1
 
-        volume = [
-            {"date": dt, **counts}
-            for dt, counts in sorted(daily.items(), reverse=True)
-        ][:30]
+        volume = [{"date": dt, **counts} for dt, counts in sorted(daily.items(), reverse=True)][:30]
 
         return APIResponse(success=True, data=volume)
 

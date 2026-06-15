@@ -64,11 +64,11 @@ COLLECTIONS = {
         "vector_params": VectorParams(size=VECTOR_SIZE, distance=DISTANCE_METRIC),
         "payload_indexes": {
             "code": PayloadSchemaType.KEYWORD,
-            "code_type": PayloadSchemaType.KEYWORD,       # ICD10, CPT, HCPCS
+            "code_type": PayloadSchemaType.KEYWORD,  # ICD10, CPT, HCPCS
             "chapter": PayloadSchemaType.KEYWORD,
             "category": PayloadSchemaType.KEYWORD,
             "payer_specificity": PayloadSchemaType.KEYWORD,  # UNIVERSAL or payer name
-            "source": PayloadSchemaType.KEYWORD,           # CMS, AHA_GUIDELINE
+            "source": PayloadSchemaType.KEYWORD,  # CMS, AHA_GUIDELINE
             "market": PayloadSchemaType.KEYWORD,
         },
     },
@@ -78,9 +78,9 @@ COLLECTIONS = {
         "payload_indexes": {
             "payer_name": PayloadSchemaType.KEYWORD,
             "policy_id": PayloadSchemaType.KEYWORD,
-            "policy_type": PayloadSchemaType.KEYWORD,       # NCD, LCD, COMMERCIAL, IRDAI
+            "policy_type": PayloadSchemaType.KEYWORD,  # NCD, LCD, COMMERCIAL, IRDAI
             "effective_date": PayloadSchemaType.KEYWORD,
-            "market": PayloadSchemaType.KEYWORD,             # US, INDIA
+            "market": PayloadSchemaType.KEYWORD,  # US, INDIA
             "page_number": PayloadSchemaType.INTEGER,
             "section_header": PayloadSchemaType.KEYWORD,
         },
@@ -90,7 +90,7 @@ COLLECTIONS = {
         "vector_params": VectorParams(size=VECTOR_SIZE, distance=DISTANCE_METRIC),
         "payload_indexes": {
             "payer_name": PayloadSchemaType.KEYWORD,
-            "outcome": PayloadSchemaType.KEYWORD,           # APPROVED, DENIED, etc.
+            "outcome": PayloadSchemaType.KEYWORD,  # APPROVED, DENIED, etc.
             "facility_type": PayloadSchemaType.KEYWORD,
             "denial_reason_code": PayloadSchemaType.KEYWORD,
             "market": PayloadSchemaType.KEYWORD,
@@ -101,8 +101,8 @@ COLLECTIONS = {
         "description": "USPSTF recommendations, CMS clinical criteria, WHO guidelines",
         "vector_params": VectorParams(size=VECTOR_SIZE, distance=DISTANCE_METRIC),
         "payload_indexes": {
-            "guideline_source": PayloadSchemaType.KEYWORD,   # USPSTF, CMS, WHO, NICE
-            "evidence_level": PayloadSchemaType.KEYWORD,     # A, B, C, D, I
+            "guideline_source": PayloadSchemaType.KEYWORD,  # USPSTF, CMS, WHO, NICE
+            "evidence_level": PayloadSchemaType.KEYWORD,  # A, B, C, D, I
             "clinical_topic": PayloadSchemaType.KEYWORD,
             "market": PayloadSchemaType.KEYWORD,
         },
@@ -135,14 +135,16 @@ def create_collections(recreate: bool = False) -> None:
 
         if name in existing:
             if recreate:
-                print(f"  ⚠️  Deleting existing collection...")
+                print("  ⚠️  Deleting existing collection...")
                 client.delete_collection(name)
             else:
-                print(f"  ✅ Already exists — skipping (use --recreate to reset)")
+                print("  ✅ Already exists — skipping (use --recreate to reset)")
                 continue
 
         # Create collection
-        print(f"  📦 Creating collection (vector_size={VECTOR_SIZE}, distance={DISTANCE_METRIC})...")
+        print(
+            f"  📦 Creating collection (vector_size={VECTOR_SIZE}, distance={DISTANCE_METRIC})..."
+        )
         client.create_collection(
             collection_name=name,
             vectors_config=config["vector_params"],
@@ -182,7 +184,9 @@ def verify_collections() -> dict[str, dict]:
             info = client.get_collection(name)
             results[name] = {
                 "points_count": getattr(info, "points_count", 0),
-                "status": getattr(info, "status", None).value if getattr(info, "status", None) else None,
+                "status": getattr(info, "status", None).value
+                if getattr(info, "status", None)
+                else None,
                 "vector_size": getattr(info.config.params.vectors, "size", 768),
             }
         except Exception as e:

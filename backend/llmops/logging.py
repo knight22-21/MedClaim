@@ -16,7 +16,9 @@ import sys
 import structlog
 
 
-def configure_logging(log_level: str = "DEBUG", environment: str = "development") -> structlog.BoundLogger:
+def configure_logging(
+    log_level: str = "DEBUG", environment: str = "development"
+) -> structlog.BoundLogger:
     """
     Configure structlog for the application.
 

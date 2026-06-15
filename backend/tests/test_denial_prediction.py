@@ -7,12 +7,15 @@ LLM JSON parsing, risk score clamping, and metric emissions.
 
 from __future__ import annotations
 
-from unittest.mock import patch, MagicMock
+from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 
-from backend.agents.denial_prediction import run_denial_prediction, _format_denial_patterns
-from backend.agents.state import ClaimState
+from backend.agents.denial_prediction import _format_denial_patterns, run_denial_prediction
+
+if TYPE_CHECKING:
+    from backend.agents.state import ClaimState
 
 
 def _make_state(**overrides) -> ClaimState:
@@ -49,6 +52,7 @@ def _make_state(**overrides) -> ClaimState:
 # RAG Formatting Tests
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestRAGFormatting:
     def test_empty_results_returns_default(self):
         result = _format_denial_patterns([])
@@ -61,11 +65,13 @@ class TestRAGFormatting:
                 self.metadata = metadata
 
         docs = [
-            (MockDoc("Procedure lacks prior authorization.", {
-                "payer_name": "Medicare",
-                "denial_code": "CO-16",
-                "outcome": "DENIED"
-            }), 0.85)
+            (
+                MockDoc(
+                    "Procedure lacks prior authorization.",
+                    {"payer_name": "Medicare", "denial_code": "CO-16", "outcome": "DENIED"},
+                ),
+                0.85,
+            )
         ]
 
         formatted = _format_denial_patterns(docs)
@@ -80,9 +86,9 @@ class TestRAGFormatting:
 # Agent Logic Tests (Mocked)
 # ═══════════════════════════════════════════════════════════════
 
+
 @pytest.mark.asyncio
 class TestDenialPredictionAgent:
-
     @patch("backend.agents.denial_prediction.retrieve_with_scores")
     @patch("backend.agents.denial_prediction.query_llm")
     @patch("backend.agents.denial_prediction.DENIALS_PREDICTED")
@@ -91,11 +97,7 @@ class TestDenialPredictionAgent:
         mock_retrieve.return_value = []
         mock_query_llm.return_value = {
             "content": "raw",
-            "json": {
-                "risk_score": 15,
-                "risk_factors": [],
-                "recommended_action": "SUBMIT_AS_IS"
-            },
+            "json": {"risk_score": 15, "risk_factors": [], "recommended_action": "SUBMIT_AS_IS"},
             "provider": "groq",
             "model": "llama-3",
             "latency_ms": 200,
@@ -131,7 +133,7 @@ class TestDenialPredictionAgent:
                 "risk_factors": [
                     {"factor": "Missing Modifier", "weight": 0.8, "description": "Need mod 25"}
                 ],
-                "recommended_action": "CORRECT_AND_RESUBMIT"
+                "recommended_action": "CORRECT_AND_RESUBMIT",
             },
             "latency_ms": 200,
         }
@@ -151,10 +153,7 @@ class TestDenialPredictionAgent:
         mock_retrieve.return_value = []
         mock_query_llm.return_value = {
             "content": "raw",
-            "json": {
-                "risk_score": 40,
-                "recommended_action": "DO_SOMETHING_WEIRD"
-            },
+            "json": {"risk_score": 40, "recommended_action": "DO_SOMETHING_WEIRD"},
             "latency_ms": 200,
         }
 
@@ -184,6 +183,7 @@ class TestDenialPredictionAgent:
 # Graph Integration Tests
 # ═══════════════════════════════════════════════════════════════
 
+
 @pytest.mark.asyncio
 class TestDenialPredictionGraphIntegration:
     """Test how prediction outputs affect graph routing."""
@@ -207,17 +207,11 @@ class TestDenialPredictionGraphIntegration:
 
         # Mock prediction LLM
         mock_query_llm.return_value = {
-            "json": {
-                "risk_score": 25,
-                "recommended_action": "SUBMIT_AS_IS"
-            },
-            "latency_ms": 100
+            "json": {"risk_score": 25, "recommended_action": "SUBMIT_AS_IS"},
+            "latency_ms": 100,
         }
 
-        state = _make_state(
-            status="AUDIT_COMPLETE",
-            audit_confidence=0.95
-        )
+        state = _make_state(status="AUDIT_COMPLETE", audit_confidence=0.95)
 
         result = await compiled.ainvoke(state)
 

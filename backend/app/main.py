@@ -7,22 +7,32 @@ CORS, and router registration.
 
 from __future__ import annotations
 
-import logging
 import base64
 from contextlib import asynccontextmanager
 
 import structlog
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
 
 from backend.app.config import settings
 from backend.app.models.responses import APIResponse, HealthResponse, HealthService
-from backend.app.routers import agents, analytics, claims, voice, feedback, auth, admin, workflows, comments, public
+from backend.app.routers import (
+    admin,
+    agents,
+    analytics,
+    auth,
+    claims,
+    comments,
+    feedback,
+    public,
+    voice,
+    workflows,
+)
 from backend.app.services.fhir_client import FHIRClient
 from backend.db.client import get_supabase_client
 from backend.llmops.logging import configure_logging
-from dotenv import load_dotenv
+
 load_dotenv()
 
 logger = structlog.get_logger("medclaim.app")
@@ -32,32 +42,32 @@ async def swagger_auth_middleware(request: Request, call_next):
     """Middleware to protect Swagger UI with HTTP Basic Authentication."""
     if request.url.path in ["/docs", "/docs/oauth2-redirect", "/openapi.json"]:
         auth_header = request.headers.get("authorization")
-        
+
         if not auth_header or not auth_header.startswith("Basic "):
             return Response(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 headers={"WWW-Authenticate": "Basic"},
-                content="Authentication required"
+                content="Authentication required",
             )
-        
+
         try:
             encoded_credentials = auth_header.split(" ")[1]
             decoded_credentials = base64.b64decode(encoded_credentials).decode("utf-8")
             username, password = decoded_credentials.split(":")
-            
+
             if username != settings.SWAGGER_USERNAME or password != settings.SWAGGER_PASSWORD:
                 return Response(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     headers={"WWW-Authenticate": "Basic"},
-                    content="Invalid credentials"
+                    content="Invalid credentials",
                 )
         except Exception:
             return Response(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 headers={"WWW-Authenticate": "Basic"},
-                content="Invalid authentication"
+                content="Invalid authentication",
             )
-    
+
     return await call_next(request)
 
 
@@ -119,8 +129,8 @@ app.middleware("http")(swagger_auth_middleware)
 #     should_instrument_requests_inprogress=True,
 #     excluded_handlers=["/metrics", "/health"],
 # ).instrument(app).expose(
-#     app, 
-#     include_in_schema=False, 
+#     app,
+#     include_in_schema=False,
 #     tags=["Observability"]
 # ) if getattr(settings, "ENABLE_METRICS", True) else None
 
@@ -169,6 +179,7 @@ async def health_check() -> APIResponse[HealthResponse]:
     # 3. Qdrant Check
     try:
         from qdrant_client import QdrantClient
+
         q = QdrantClient(url=settings.QDRANT_URL, api_key=settings.QDRANT_API_KEY)
         collections = q.get_collections().collections
         services["qdrant"] = HealthService(

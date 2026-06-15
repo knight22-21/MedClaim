@@ -9,14 +9,16 @@ and FHIR Claim resource formats.
 from __future__ import annotations
 
 from datetime import date, datetime
-from enum import Enum
-from typing import Any
-from uuid import UUID
+from enum import StrEnum
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field, field_validator
 
+if TYPE_CHECKING:
+    from uuid import UUID
 
-class ClaimStatus(str, Enum):
+
+class ClaimStatus(StrEnum):
     """All valid claim lifecycle statuses."""
 
     RECEIVED = "RECEIVED"
@@ -36,7 +38,7 @@ class ClaimStatus(str, Enum):
     FINAL_DENIED = "FINAL_DENIED"
 
 
-class FacilityType(str, Enum):
+class FacilityType(StrEnum):
     """Valid healthcare facility types."""
 
     INPATIENT_HOSPITAL = "inpatient_hospital"
@@ -46,7 +48,7 @@ class FacilityType(str, Enum):
     SKILLED_NURSING_FACILITY = "skilled_nursing_facility"
 
 
-class Market(str, Enum):
+class Market(StrEnum):
     """Target market for the claim."""
 
     US = "US"
@@ -69,6 +71,7 @@ class ProcedureCode(BaseModel):
 
 
 # ── Request Models ───────────────────────────────────────────
+
 
 class ClaimCreate(BaseModel):
     """Schema for creating a new claim via POST /claims."""
@@ -120,6 +123,7 @@ class ClaimApproval(BaseModel):
 
 # ── Response Models ──────────────────────────────────────────
 
+
 class ClaimResponse(BaseModel):
     """Full claim data returned by the API."""
 
@@ -156,6 +160,7 @@ class ClaimListResponse(BaseModel):
 
 
 # ── FHIR Parsing ─────────────────────────────────────────────
+
 
 def parse_fhir_claim(fhir_resource: dict[str, Any]) -> ClaimCreate:
     """
@@ -210,10 +215,12 @@ def parse_fhir_claim(fhir_resource: dict[str, Any]) -> ClaimCreate:
         coding_list = diag.get("diagnosisCodeableConcept", {}).get("coding", [])
         for coding in coding_list:
             if coding.get("code"):
-                diagnosis_codes.append(DiagnosisCode(
-                    code=coding["code"],
-                    description=coding.get("display", ""),
-                ))
+                diagnosis_codes.append(
+                    DiagnosisCode(
+                        code=coding["code"],
+                        description=coding.get("display", ""),
+                    )
+                )
 
     if not diagnosis_codes:
         raise ValueError("FHIR Claim has no diagnosis codes")
@@ -229,11 +236,13 @@ def parse_fhir_claim(fhir_resource: dict[str, Any]) -> ClaimCreate:
                     for mc in mod.get("coding", []):
                         if mc.get("code"):
                             modifiers.append(mc["code"])
-                procedure_codes.append(ProcedureCode(
-                    code=coding["code"],
-                    description=coding.get("display", ""),
-                    modifiers=modifiers,
-                ))
+                procedure_codes.append(
+                    ProcedureCode(
+                        code=coding["code"],
+                        description=coding.get("display", ""),
+                        modifiers=modifiers,
+                    )
+                )
 
     # Extract dates and amounts
     dos_str = fhir_resource.get("billablePeriod", {}).get("start", "")
