@@ -441,7 +441,7 @@ def seed_database() -> None:
     print("\n📋 Claims by Status:")
     status_counts: dict[str, int] = {}
     for claim in SEED_CLAIMS:
-        s = claim["status"]
+        s = str(claim["status"])
         status_counts[s] = status_counts.get(s, 0) + 1
     for status, count in sorted(status_counts.items()):
         print(f"   {status:<25s} : {count}")
@@ -450,7 +450,7 @@ def seed_database() -> None:
     print("\n🌍 Claims by Market:")
     market_counts: dict[str, int] = {}
     for claim in SEED_CLAIMS:
-        m = claim["market"]
+        m = str(claim["market"])
         market_counts[m] = market_counts.get(m, 0) + 1
     for market, count in sorted(market_counts.items()):
         print(f"   {market:<10s} : {count}")

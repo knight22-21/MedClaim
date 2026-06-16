@@ -51,7 +51,7 @@ async def create_blog_post(
             author_id,
         )
 
-        return result.data[0]
+        return result.data[0]  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error("blog.post.create_failed | slug=%s error=%s", slug, str(e))
@@ -143,7 +143,7 @@ async def update_blog_post(
 
         logger.info("blog.post.updated | post_id=%s", post_id)
 
-        return result.data[0]
+        return result.data[0]  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error("blog.post.update_failed | post_id=%s error=%s", post_id, str(e))

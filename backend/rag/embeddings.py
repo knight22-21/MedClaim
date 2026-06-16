@@ -54,7 +54,7 @@ def get_ollama_embeddings() -> OllamaEmbeddings:
     )
 
 
-def get_hf_embeddings():
+def get_hf_embeddings() -> EmbeddingFunction:
     """
     Create HuggingFace Inference API embedding function (fallback).
 
@@ -81,7 +81,7 @@ def get_hf_embeddings():
             "Required for HuggingFace fallback embeddings."
         )
 
-    return HuggingFaceInferenceAPIEmbeddings(
+    return HuggingFaceInferenceAPIEmbeddings(  # type: ignore[no-any-return]
         api_key=api_key,
         model_name=HF_MODEL,
     )
@@ -112,7 +112,7 @@ def get_embedding_function(prefer_ollama: bool = True) -> EmbeddingFunction:
                 logger.info(
                     f"Using Ollama embeddings (model={OLLAMA_MODEL}, dimension={VECTOR_DIMENSION})"
                 )
-                return embeddings
+                return embeddings  # type: ignore[no-any-return]
             else:
                 logger.warning(
                     f"Ollama returned unexpected dimension (expected={VECTOR_DIMENSION}, actual={len(test_result)})"
@@ -126,7 +126,7 @@ def get_embedding_function(prefer_ollama: bool = True) -> EmbeddingFunction:
         logger.info(
             f"Using HuggingFace Inference API embeddings (model={HF_MODEL}, dimension={VECTOR_DIMENSION})"
         )
-        return embeddings
+        return embeddings  # type: ignore[no-any-return]
     except Exception as e:
         logger.error(f"HuggingFace fallback also failed: {e}")
 

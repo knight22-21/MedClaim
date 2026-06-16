@@ -182,11 +182,10 @@ def verify_collections() -> dict[str, dict]:
     for name in COLLECTIONS:
         try:
             info = client.get_collection(name)
+            status_attr = getattr(info, "status", None)
             results[name] = {
                 "points_count": getattr(info, "points_count", 0),
-                "status": getattr(info, "status", None).value
-                if getattr(info, "status", None)
-                else None,
+                "status": status_attr.value if status_attr else None,
                 "vector_size": getattr(info.config.params.vectors, "size", 768),
             }
         except Exception as e:

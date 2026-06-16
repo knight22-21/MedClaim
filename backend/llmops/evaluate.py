@@ -66,7 +66,7 @@ EVAL_EXAMPLES = [
 ]
 
 
-def prepare_dataset(client: Client):
+def prepare_dataset(client: Client) -> None:
     """Create or update the LangSmith dataset."""
     if not client.has_dataset(dataset_name=EVAL_DATASET_NAME):
         dataset = client.create_dataset(
@@ -117,7 +117,7 @@ async def target_function(inputs: dict) -> dict:
     return await run_code_audit(state)
 
 
-async def run_evaluation():
+async def run_evaluation() -> Any:
     """Run the LangSmith evaluation suite."""
     if not os.getenv("LANGSMITH_API_KEY"):
         logger.warning("evaluate.skip.no_api_key")

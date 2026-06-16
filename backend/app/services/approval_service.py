@@ -43,7 +43,7 @@ async def create_workflow(
             created_by,
         )
 
-        return result.data[0]
+        return result.data[0]  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error("approval.workflow.create_failed | name=%s error=%s", name, str(e))
@@ -95,7 +95,7 @@ async def get_workflow(workflow_id: str) -> dict[str, Any] | None:
         )
         workflow["steps"] = steps_result.data or []
 
-        return workflow
+        return workflow  # type: ignore[no-any-return]
     except Exception as e:
         logger.error("approval.workflow.get_failed | workflow_id=%s error=%s", workflow_id, str(e))
         raise
@@ -132,7 +132,7 @@ async def update_workflow(
 
         logger.info("approval.workflow.updated | workflow_id=%s", workflow_id)
 
-        return result.data[0]
+        return result.data[0]  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error(
@@ -186,7 +186,7 @@ async def add_workflow_step(
             required_role,
         )
 
-        return result.data[0]
+        return result.data[0]  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error(
@@ -229,7 +229,7 @@ async def update_workflow_step(
 
         logger.info("approval.workflow.step_updated | step_id=%s", step_id)
 
-        return result.data[0]
+        return result.data[0]  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error("approval.workflow.step_update_failed | step_id=%s error=%s", step_id, str(e))
@@ -291,7 +291,7 @@ async def initiate_claim_approval(claim_id: str, workflow_id: str) -> dict[str, 
 
         logger.info("approval.claim.initiated | claim_id=%s workflow_id=%s", claim_id, workflow_id)
 
-        return result.data[0]
+        return result.data[0]  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error("approval.claim.initiate_failed | claim_id=%s error=%s", claim_id, str(e))
@@ -422,7 +422,7 @@ async def process_approval_action(
             approver_id,
         )
 
-        return result.data[0] if result.data else approval
+        return result.data[0] if result.data else approval  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error("approval.claim.action_failed | claim_id=%s error=%s", claim_id, str(e))
@@ -453,7 +453,7 @@ async def get_claim_approval(claim_id: str) -> dict[str, Any] | None:
         )
         approval["history"] = history_result.data or []
 
-        return approval
+        return approval  # type: ignore[no-any-return]
     except Exception as e:
         logger.error("approval.claim.get_failed | claim_id=%s error=%s", claim_id, str(e))
         raise

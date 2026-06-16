@@ -88,7 +88,7 @@ async def require_auth(current_user: dict[str, Any] = Depends(get_current_user))
     return current_user
 
 
-def require_role(allowed_roles: list[str]):
+def require_role(allowed_roles: list[str]) -> Any:
     """
     Dependency factory for role-based access control.
 

@@ -16,7 +16,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 if TYPE_CHECKING:
     from datetime import date
@@ -43,7 +43,7 @@ def _load_payer_directory() -> dict[str, list[dict[str, Any]]]:
         len(data.get("us_payers", [])),
         len(data.get("india_payers", [])),
     )
-    return data
+    return data  # type: ignore[no-any-return]
 
 
 @lru_cache(maxsize=1)
@@ -57,7 +57,7 @@ def _load_eligibility_fixtures() -> dict[str, Any]:
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
     logger.info("eligibility_fixtures loaded: %d scenarios", len(data.get("fixtures", [])))
-    return data
+    return data  # type: ignore[no-any-return]
 
 
 def get_payer_info(payer_id: str, market: str = "US") -> dict[str, Any] | None:
@@ -112,17 +112,17 @@ def _find_fixture_match(
             and fix.get("patient_dob") == patient_dob
             and fix.get("procedure_code") == procedure_code
         ):
-            return fix
+            return fix  # type: ignore[no-any-return]
 
     # Priority 2: Match payer + procedure (ignore DOB)
     for fix in fixtures:
         if fix.get("payer_id") == payer_id and fix.get("procedure_code") == procedure_code:
-            return fix
+            return fix  # type: ignore[no-any-return]
 
     # Priority 3: Match payer only
     for fix in fixtures:
         if fix.get("payer_id") == payer_id:
-            return fix
+            return fix  # type: ignore[no-any-return]
 
     return None
 

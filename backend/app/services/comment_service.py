@@ -42,7 +42,7 @@ async def create_comment(
             parent_id,
         )
 
-        return result.data[0]
+        return result.data[0]  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error(
@@ -118,7 +118,7 @@ async def update_comment(comment_id: str, content: str, user_id: str) -> dict[st
 
         logger.info("comment.updated | comment_id=%s user_id=%s", comment_id, user_id)
 
-        return result.data[0]
+        return result.data[0]  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error("comment.update_failed | comment_id=%s error=%s", comment_id, str(e))

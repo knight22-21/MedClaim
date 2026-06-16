@@ -70,7 +70,7 @@ class FHIRClient:
         r.raise_for_status()
         result = r.json()
         logger.info("fhir.patient_created | patient_id=%s", result.get("id"))
-        return result
+        return result  # type: ignore[no-any-return]
 
     async def get_patient(self, patient_id: str) -> dict[str, Any] | None:
         """Retrieve a Patient resource by ID."""
@@ -78,7 +78,7 @@ class FHIRClient:
         if r.status_code == 404:
             return None
         r.raise_for_status()
-        return r.json()
+        return r.json()  # type: ignore[no-any-return]
 
     # ── Encounter ─────────────────────────────────────────────
 
@@ -99,7 +99,7 @@ class FHIRClient:
         r.raise_for_status()
         result = r.json()
         logger.info("fhir.encounter_created | encounter_id=%s", result.get("id"))
-        return result
+        return result  # type: ignore[no-any-return]
 
     # ── Claim ─────────────────────────────────────────────────
 
@@ -110,7 +110,7 @@ class FHIRClient:
         r.raise_for_status()
         result = r.json()
         logger.info("fhir.claim_created | claim_id=%s", result.get("id"))
-        return result
+        return result  # type: ignore[no-any-return]
 
     async def get_claim(self, claim_id: str) -> dict[str, Any] | None:
         """Retrieve a Claim resource by ID."""
@@ -118,7 +118,7 @@ class FHIRClient:
         if r.status_code == 404:
             return None
         r.raise_for_status()
-        return r.json()
+        return r.json()  # type: ignore[no-any-return]
 
     # ── ExplanationOfBenefit ──────────────────────────────────
 
@@ -128,4 +128,4 @@ class FHIRClient:
         if r.status_code == 404:
             return None
         r.raise_for_status()
-        return r.json()
+        return r.json()  # type: ignore[no-any-return]

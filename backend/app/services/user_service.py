@@ -70,7 +70,7 @@ async def create_user(
             created_by,
         )
 
-        return profile_response.data[0]
+        return profile_response.data[0]  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error("user.create_failed | email=%s error=%s", email, str(e))
@@ -145,7 +145,7 @@ async def update_user(
             list(update_data.keys()),
         )
 
-        return result.data[0]
+        return result.data[0]  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error("user.update_failed | user_id=%s error=%s", user_id, str(e))

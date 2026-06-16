@@ -26,7 +26,7 @@ def get_langsmith_client() -> Client | None:
         try:
             return Client(api_key=api_key)
         except Exception as e:
-            logger.error("langsmith.client.init_failed", error=str(e))
+            logger.error("langsmith.client.init_failed | error=%s", str(e))
             return None
     return None
 

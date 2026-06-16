@@ -102,7 +102,7 @@ async def update_lead_status(lead_id: str, status: str) -> dict[str, Any]:
 
         logger.info("lead.status_updated | lead_id=%s new_status=%s", lead_id, status)
 
-        return result.data[0]
+        return result.data[0]  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error("lead.update_failed | lead_id=%s error=%s", lead_id, str(e))

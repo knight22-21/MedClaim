@@ -51,7 +51,7 @@ async def transcribe_audio(audio_bytes: bytes, filename: str = "audio.wav") -> s
         )
         # response_format="text" returns a string directly
         logger.info("voice.stt.complete", length=len(transcription))
-        return transcription.strip()
+        return str(transcription).strip()
     except Exception as e:
         logger.error("voice.stt.failed", error=str(e))
         raise RuntimeError(f"Speech-to-text failed: {str(e)}")
@@ -179,7 +179,7 @@ async def generate_response(transcription: str, context: str) -> str:
         json_mode=False,
         tags=["voice_ai", "response_generation"],
     )
-    return res.get("content", "I'm sorry, I couldn't generate a response.")
+    return str(res.get("content", "I'm sorry, I couldn't generate a response."))
 
 
 def synthesize_speech(text: str) -> str:

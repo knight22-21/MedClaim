@@ -105,7 +105,7 @@ def get_retriever(
     top_k: int | None = None,
     filter_kwargs: dict[str, Any] | None = None,
     score_threshold: float | None = None,
-):
+) -> Any:
     """
     Get a configured LangChain retriever for the specified collection.
 
@@ -209,4 +209,4 @@ def retrieve_with_scores(
             f"retrieval.no_results (collection={collection_name}, query_preview={query[:100]}",
         )
 
-    return results
+    return results  # type: ignore[no-any-return]

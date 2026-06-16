@@ -15,6 +15,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
+from collections.abc import AsyncIterator, Awaitable, Callable
+from starlette.responses import Response
+
 from backend.app.config import settings
 from backend.app.models.responses import APIResponse, HealthResponse, HealthService
 from backend.app.routers import (
@@ -38,7 +41,10 @@ load_dotenv()
 logger = structlog.get_logger("medclaim.app")
 
 
-async def swagger_auth_middleware(request: Request, call_next):
+async def swagger_auth_middleware(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
     """Middleware to protect Swagger UI with HTTP Basic Authentication."""
     if request.url.path in ["/docs", "/docs/oauth2-redirect", "/openapi.json"]:
         auth_header = request.headers.get("authorization")
@@ -72,7 +78,7 @@ async def swagger_auth_middleware(request: Request, call_next):
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Lifecycle hook for startup/shutdown events."""
     # 1. Configure structured logging
     configure_logging()

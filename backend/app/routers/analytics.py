@@ -72,7 +72,7 @@ async def get_summary() -> APIResponse[AnalyticsSummary]:
         return APIResponse(success=True, data=summary)
 
     except Exception as e:
-        logger.error("analytics.summary.failed", error=str(e))
+        logger.error("analytics.summary.failed | error=%s", str(e))
         return APIResponse(
             success=True,
             data=AnalyticsSummary(),
@@ -116,7 +116,7 @@ async def get_denial_by_payer() -> APIResponse[list[DenialByPayer]]:
         return APIResponse(success=True, data=denials)
 
     except Exception as e:
-        logger.error("analytics.denials.failed", error=str(e))
+        logger.error("analytics.denials.failed | error=%s", str(e))
         return APIResponse(success=True, data=[], message="Could not compute denial rates")
 
 
@@ -145,5 +145,5 @@ async def get_claim_volume() -> APIResponse:
         return APIResponse(success=True, data=volume)
 
     except Exception as e:
-        logger.error("analytics.volume.failed", error=str(e))
+        logger.error("analytics.volume.failed | error=%s", str(e))
         return APIResponse(success=True, data=[], message="Could not compute volume")

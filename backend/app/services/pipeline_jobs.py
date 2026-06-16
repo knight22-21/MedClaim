@@ -61,7 +61,7 @@ async def create_job(claim_id: str) -> dict[str, Any]:
         raise RuntimeError("Failed to create pipeline job")
 
     logger.info("job.created | job_id=%s claim_id=%s", job_id, claim_id)
-    return result.data[0]
+    return result.data[0]  # type: ignore[no-any-return]
 
 
 async def get_job(job_id: str) -> dict[str, Any] | None:
@@ -70,7 +70,7 @@ async def get_job(job_id: str) -> dict[str, Any] | None:
     result = client.table("pipeline_jobs").select("*").eq("id", job_id).execute()
     if not result.data:
         return None
-    return result.data[0]
+    return result.data[0]  # type: ignore[no-any-return]
 
 
 async def get_jobs_for_claim(claim_id: str) -> list[dict[str, Any]]:

@@ -141,7 +141,7 @@ def build_graph() -> StateGraph:
 _compiled_graph = None
 
 
-def get_compiled_graph():
+def get_compiled_graph() -> Any:
     """Get or create the compiled graph (cached singleton)."""
     global _compiled_graph
     if _compiled_graph is None:
@@ -289,4 +289,4 @@ async def process_claim(claim_id: str) -> dict[str, Any]:
         final_state.get("total_prompt_tokens", 0) + final_state.get("total_completion_tokens", 0),
     )
 
-    return final_state
+    return final_state  # type: ignore[no-any-return]

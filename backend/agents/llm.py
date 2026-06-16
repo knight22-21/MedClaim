@@ -13,7 +13,7 @@ import os
 import time
 from typing import Any
 
-import redis.asyncio as redis_async
+import redis.asyncio as redis_async  # type: ignore[import-untyped]
 import structlog
 from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
