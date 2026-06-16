@@ -9,14 +9,15 @@ from __future__ import annotations
 
 import base64
 from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
 
 import structlog
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from collections.abc import AsyncIterator, Awaitable, Callable
-from starlette.responses import Response
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Awaitable, Callable
 
 from backend.app.config import settings
 from backend.app.models.responses import APIResponse, HealthResponse, HealthService
