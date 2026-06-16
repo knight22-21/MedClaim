@@ -74,7 +74,7 @@ def render_prompt(template_name: str, context: dict[str, Any]) -> str:
         len(rendered),
         list(context.keys()),
     )
-    return rendered
+    return rendered  # type: ignore[no-any-return]
 
 
 def list_templates() -> list[str]:
