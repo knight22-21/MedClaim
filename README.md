@@ -62,10 +62,15 @@ For comprehensive technical documentation, please refer to the `/docs` folder:
 
 - **[Architecture Overview](docs/01-architecture.md)** - System design, component interactions, and data flow
 - **[Agent System](docs/02-agents.md)** - Multi-agent orchestration, state management, and agent logic
+- **[Agent Logic](docs/06-agent-logic.md)** - Detailed decision-making logic and business rules
 - **[RAG Pipeline](docs/03-rag.md)** - Vector databases, embedding generation, and retrieval strategies
 - **[Database Design](docs/04-database.md)** - Schema design, relationships, and data persistence
 - **[Data Handling](docs/05-data-handling.md)** - Ingestion pipelines, synthetic data generation, and ETL
-- **[LLMOps & Observability](docs/06-llmops.md)** - Tracing, monitoring, evaluation, and continuous learning
+- **[LLMOps & Observability](docs/07-llmops.md)** - Tracing, monitoring, evaluation, and continuous learning
+- **[API Routers](docs/08-api-routers.md)** - REST API endpoints, authentication, and error handling
+- **Services Layer](docs/09-services.md)** - Business logic services and integration patterns
+- **[Voice AI](docs/10-voice-ai.md)** - Speech-to-text, intent classification, and text-to-speech
+- **[Workflows & Approval](docs/11-workflows-approval.md)** - Approval workflows, escalation, and notifications
 
 ---
 
