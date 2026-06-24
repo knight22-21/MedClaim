@@ -68,7 +68,7 @@ For comprehensive technical documentation, please refer to the `/docs` folder:
 - **[Data Handling](docs/05-data-handling.md)** - Ingestion pipelines, synthetic data generation, and ETL
 - **[LLMOps & Observability](docs/07-llmops.md)** - Tracing, monitoring, evaluation, and continuous learning
 - **[API Routers](docs/08-api-routers.md)** - REST API endpoints, authentication, and error handling
-- **Services Layer](docs/09-services.md)** - Business logic services and integration patterns
+- **[Services Layer](docs/09-services.md)** - Business logic services and integration patterns
 - **[Voice AI](docs/10-voice-ai.md)** - Speech-to-text, intent classification, and text-to-speech
 - **[Workflows & Approval](docs/11-workflows-approval.md)** - Approval workflows, escalation, and notifications
 
