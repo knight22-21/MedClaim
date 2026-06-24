@@ -17,6 +17,7 @@ Usage:
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 from langchain_qdrant import QdrantVectorStore
@@ -45,6 +46,47 @@ DEFAULT_TOP_K = {
     "clinical_guidelines": 3,
 }
 
+# Retry configuration
+MAX_RETRIES = 3
+RETRY_DELAY_SECONDS = 1
+
+
+def _retry_on_error(func, *args, **kwargs) -> Any:
+    """
+    Retry a function with exponential backoff on connection errors.
+
+    Args:
+        func: Function to retry
+        *args: Positional arguments for the function
+        **kwargs: Keyword arguments for the function
+
+    Returns:
+        Function result
+
+    Raises:
+        Exception: If all retries are exhausted
+    """
+    last_error = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            last_error = e
+            error_type = type(e).__name__
+            # Retry on connection/DNS errors
+            if error_type in ("ConnectionError", "ConnectTimeout", "gaierror") or "getaddrinfo" in str(e):
+                if attempt < MAX_RETRIES - 1:
+                    wait_time = RETRY_DELAY_SECONDS * (attempt + 1)
+                    logger.warning(
+                        f"rag.retry | error={error_type} attempt={attempt + 1}/{MAX_RETRIES} "
+                        f"retry_in={wait_time}s error_msg={str(e)[:100]}"
+                    )
+                    time.sleep(wait_time)
+                    continue
+            # Non-retryable error or max retries reached
+            raise
+    raise last_error
+
 
 def _get_qdrant_client() -> QdrantClient:
     """Get a Qdrant client from settings."""
@@ -67,11 +109,14 @@ def get_vector_store(collection_name: str) -> QdrantVectorStore:
     embed_fn = get_embedding_function()
     client = _get_qdrant_client()
 
-    return QdrantVectorStore(
-        client=client,
-        collection_name=collection_name,
-        embedding=embed_fn,
-    )
+    def _create_vector_store() -> QdrantVectorStore:
+        return QdrantVectorStore(
+            client=client,
+            collection_name=collection_name,
+            embedding=embed_fn,
+        )
+
+    return _retry_on_error(_create_vector_store)
 
 
 def build_qdrant_filter(filter_kwargs: dict[str, Any] | None = None) -> Filter | None:
@@ -182,7 +227,10 @@ def retrieve_with_scores(
     if qdrant_filter:
         search_kwargs["filter"] = qdrant_filter
 
-    results = vector_store.similarity_search_with_score(query, **search_kwargs)
+    def _do_search() -> list[tuple[Any, float]]:
+        return vector_store.similarity_search_with_score(query, **search_kwargs)
+
+    results = _retry_on_error(_do_search)
 
     # Quality monitoring: check top similarity score
     threshold = SIMILARITY_THRESHOLDS.get(collection_name, 0.70)

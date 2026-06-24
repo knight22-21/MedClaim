@@ -30,10 +30,8 @@ Routing Table:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from backend.agents.state import ClaimState
+from backend.agents.state import ClaimState
 
 logger = logging.getLogger("medclaim.agents.supervisor")
 

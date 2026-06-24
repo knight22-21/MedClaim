@@ -10,16 +10,14 @@ then generates a highly structured and cited appeal letter using Gemini
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import structlog
 
 from backend.agents.llm import query_llm
+from backend.agents.state import ClaimState
 from backend.prompts.loader import render_prompt
 from backend.rag.retrievers import retrieve_with_scores
-
-if TYPE_CHECKING:
-    from backend.agents.state import ClaimState
 
 logger = structlog.get_logger("medclaim.agents.appeal_drafting")
 

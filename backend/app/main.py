@@ -36,6 +36,7 @@ from backend.app.routers import (
 from backend.app.services.fhir_client import FHIRClient
 from backend.db.client import get_supabase_client
 from backend.llmops.logging import configure_logging
+from backend.llmops import metrics  # Register custom Prometheus metrics
 
 load_dotenv()
 
@@ -128,7 +129,8 @@ app.add_middleware(
 app.middleware("http")(swagger_auth_middleware)
 
 # Configure Prometheus Instrumentator
-# Change this parameter in main.py to pull from your settings class
+# from prometheus_fastapi_instrumentator import Instrumentator
+
 # Instrumentator(
 #     should_group_status_codes=False,
 #     should_ignore_untemplated=True,
@@ -139,7 +141,7 @@ app.middleware("http")(swagger_auth_middleware)
 #     app,
 #     include_in_schema=False,
 #     tags=["Observability"]
-# ) if getattr(settings, "ENABLE_METRICS", True) else None
+# ) if settings.ENABLE_METRICS else None
 
 # Register Routers
 app.include_router(claims.router)

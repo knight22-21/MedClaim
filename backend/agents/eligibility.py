@@ -22,15 +22,13 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
+from backend.agents.state import ClaimState
 from backend.app.services.eligibility_service import (
     get_payer_info,
     verify_eligibility,
 )
-
-if TYPE_CHECKING:
-    from backend.agents.state import ClaimState
 
 logger = logging.getLogger("medclaim.agents.eligibility")
 
