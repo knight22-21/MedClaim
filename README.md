@@ -25,6 +25,24 @@ Medical insurance claim denials represent a **$262B–$300B annual loss** in the
 
 ---
 
+## 🎥 Demo Walkthrough
+
+See MedClaim process an end-to-end insurance claim in real time, including eligibility verification, code audit, denial prediction, appeal generation, and observability dashboards.
+
+<p align="center">
+  <a href="https://youtu.be/Y70HdRIeTLk">
+    <img src="https://img.youtube.com/vi/Y70HdRIeTLk/maxresdefault.jpg"
+         alt="Watch MedClaim Demo"
+         width="800">
+  </a>
+</p>
+
+<p align="center">
+  <b>▶ Click the image above to watch the full walkthrough.</b>
+</p>
+
+---
+
 ## 🏗️ System Architecture
 
 MedClaim is composed of six modular, decoupling layers working in tandem:
